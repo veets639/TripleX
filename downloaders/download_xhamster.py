@@ -1,13 +1,13 @@
-import requests
-import re
 import json
+import logging
 import os
-import shutil
+import re
 import subprocess
+import sys
 from multiprocessing import Pool
 from urllib.parse import urljoin
-import logging
-import sys
+
+import requests
 
 # Configure logging
 logging.basicConfig(
@@ -19,6 +19,7 @@ logging.basicConfig(
     ]
 )
 
+
 def get_id_from_url(url):
     pattern = r'/videos/.+?-([\w\d]+)(?:\?|$)'
     match = re.search(pattern, url)
@@ -29,6 +30,7 @@ def get_id_from_url(url):
     else:
         logging.error("No match found for video ID")
         return None
+
 
 def get_master_playlists(video_id):
     # Visit embed page
@@ -50,13 +52,13 @@ def get_master_playlists(video_id):
             return None
         # Adjust the regex pattern to match the new structure
         script_content = re.search(
-            r'window\.initials\s*=\s*({.*?});\s*</script>', 
+            r'window\.initials\s*=\s*({.*?});\s*</script>',
             response.text, re.DOTALL
         )
         if not script_content:
             # Try alternative pattern
             script_content = re.search(
-                r'window\.xplayerSettings\s*=\s*({.*?});\s*</script>', 
+                r'window\.xplayerSettings\s*=\s*({.*?});\s*</script>',
                 response.text, re.DOTALL
             )
         if script_content:
@@ -103,6 +105,7 @@ def get_master_playlists(video_id):
         logging.error(f"An error occurred while fetching the embed page: {str(e)}")
         return None
 
+
 def get_best_quality_stream(master_playlist_url, min_vertical_resolution=144, max_vertical_resolution=2160):
     # Fetch the playlist
     logging.info(f"Fetching master playlist: {master_playlist_url}")
@@ -139,7 +142,8 @@ def get_best_quality_stream(master_playlist_url, min_vertical_resolution=144, ma
         # Get the best quality among the streams within the resolution range
         streams_within_range = [s for s in streams if min_vertical_resolution <= s['height'] <= max_vertical_resolution]
         if not streams_within_range:
-            logging.error(f"No streams found within the resolution range {min_vertical_resolution}-{max_vertical_resolution}p.")
+            logging.error(
+                f"No streams found within the resolution range {min_vertical_resolution}-{max_vertical_resolution}p.")
             return None
         best_stream = max(streams_within_range, key=lambda s: s['height'])
         best_quality_url = best_stream['url']
@@ -153,6 +157,8 @@ def get_best_quality_stream(master_playlist_url, min_vertical_resolution=144, ma
     except Exception as e:
         logging.error(f"An error occurred while fetching the master playlist: {str(e)}")
         return None
+
+
 def download_and_process_h264(full_variant_url, title, video_id, destination_folder):
     logging.info(f"Fetching H264 variant playlist: {full_variant_url}")
     response = requests.get(full_variant_url)
@@ -203,6 +209,7 @@ def download_and_process_h264(full_variant_url, title, video_id, destination_fol
 
     os.remove('file_list.txt')
 
+
 def download_and_process_segment_h264(args):
     url, output_filename = args
     output_filename = os.path.abspath(output_filename)
@@ -225,6 +232,7 @@ def download_and_process_segment_h264(args):
             else:
                 logging.error(f"Exceeded maximum retries for {output_filename}. Skipping this segment.")
     return (False, output_filename)
+
 
 def download_and_process_av1(master_playlist_url, title, video_id, destination_folder):
     # Fetch the master playlist
@@ -270,6 +278,7 @@ def download_and_process_av1(master_playlist_url, title, video_id, destination_f
     # Process all segments
     process_all_segments_av1(segment_urls, full_variant_url, title, video_id, destination_folder)
 
+
 def download_file(url, filename):
     logging.info(f"Downloading file from {url}")
     headers = {"Referer": "https://xhamster.com/"}
@@ -279,9 +288,12 @@ def download_file(url, filename):
             if chunk:
                 f.write(chunk)
 
-def process_all_segments_av1(segment_urls, full_variant_url, title, video_id, destination_folder, init_file='init-v1-a1.mp4'):
+
+def process_all_segments_av1(segment_urls, full_variant_url, title, video_id, destination_folder,
+                             init_file='init-v1-a1.mp4'):
     temp_files = []  # List to track all temporary files for cleanup
-    segment_args = [(merge_urls_av1(full_variant_url, segment_url), index, init_file) for index, segment_url in enumerate(segment_urls)]
+    segment_args = [(merge_urls_av1(full_variant_url, segment_url), index, init_file) for index, segment_url in
+                    enumerate(segment_urls)]
     # Create a pool of workers and process segments in parallel
     with Pool() as pool:
         output_files = pool.starmap(process_segment_av1, segment_args)
@@ -316,6 +328,7 @@ def process_all_segments_av1(segment_urls, full_variant_url, title, video_id, de
     os.remove('file_list.txt')
     logging.info("Cleanup completed.")
 
+
 def process_segment_av1(url, index, init_file='init-v1-a1.mp4'):
     segment_filename = f'segment_{index}.m4s'
     output_filename = f'output_segment_{index}.mp4'
@@ -346,11 +359,13 @@ def process_segment_av1(url, index, init_file='init-v1-a1.mp4'):
                 logging.error(f"Exceeded maximum retries for segment {url}. Skipping this segment.")
     return None  # Indicate failure
 
+
 def merge_urls_av1(base_url, relative_url):
     # Construct the full URL for the segment
     base_dir = base_url.rsplit('/', 1)[0]
     merged_url = urljoin(base_dir + '/', relative_url)
     return merged_url
+
 
 def main():
     # Check for URL argument
@@ -408,6 +423,7 @@ def main():
             logging.error("Failed to get best AV1 stream.")
     else:
         logging.warning("AV1 stream not available.")
+
 
 if __name__ == "__main__":
     main()

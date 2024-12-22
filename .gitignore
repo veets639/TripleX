@@ -28,3 +28,6 @@ outputs/
 # Ignore temporary files
 *.tmp
 *.temp
+
+# Ignore models files
+models/

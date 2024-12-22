@@ -1,7 +1,8 @@
 import os
-import sys
 import subprocess
+import sys
 from multiprocessing import Pool
+
 
 def get_frame_rate(video_path):
     """Get the frame rate of the video using ffprobe."""
@@ -23,6 +24,7 @@ def get_frame_rate(video_path):
             return float(nums[0])
     else:
         return None
+
 
 def trim_video(input_path, num_frames):
     # Trim the first num_frames from the video at input_path and overwrite the file
@@ -59,6 +61,7 @@ def trim_video(input_path, num_frames):
         if os.path.exists(temp_output_path):
             os.remove(temp_output_path)
 
+
 def get_video_codec(video_path):
     """Get the video codec of the input video."""
     command = [
@@ -71,6 +74,7 @@ def get_video_codec(video_path):
         return codec
     else:
         return 'libx264'  # Default to libx264 if codec detection fails
+
 
 def get_audio_codec(video_path):
     """Get the audio codec of the input video."""
@@ -95,9 +99,11 @@ def get_audio_codec(video_path):
     else:
         return 'aac'  # Default to 'aac' if no audio stream or detection fails
 
+
 def process_video(args):
     input_path, output_path, num_frames = args
     trim_video(input_path, output_path, num_frames)
+
 
 def main():
     # Check for the number of frames argument
@@ -130,6 +136,7 @@ def main():
             pool.map(process_video, args_list)
     else:
         print("No video files found to process.")
+
 
 if __name__ == "__main__":
     main()

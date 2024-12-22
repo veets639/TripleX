@@ -1,9 +1,12 @@
 import os
+
 from scenedetect import VideoManager, SceneManager
 from scenedetect.detectors import ContentDetector
 from scenedetect.video_splitter import split_video_ffmpeg
 
-def split_video_into_scenes(video_path, output_dir, threshold=30.0, min_scene_len=15):
+
+# TODO save the scenes in a separate folder, like /outputs/scenes or /outputs/clips. That way we can run further processing without including the original full-length video
+def split_video_into_scenes(video_path, output_dir, threshold=15.0, min_scene_len=15):
     # Create a video manager
     video_manager = VideoManager([video_path])
     # Create a scene manager and add the detector
@@ -25,6 +28,7 @@ def split_video_into_scenes(video_path, output_dir, threshold=30.0, min_scene_le
     finally:
         video_manager.release()
 
+
 def main():
     # Fixed input directory
     input_directory = os.path.join(os.getcwd(), "outputs", "video")
@@ -40,6 +44,7 @@ def main():
             # Call split_video_into_scenes
             split_video_into_scenes(video_path, output_dir)
     print("All videos processed.")
+
 
 if __name__ == "__main__":
     main()
