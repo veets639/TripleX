@@ -1,6 +1,6 @@
 # TripleX by NSFW API
 
-Welcome to the **TripleX** repository! This project provides tools for downloading videos from supported websites and processing them using utilities like scene detection, trimming, and frame analysis.
+Welcome to the **TripleX** repository! This project provides tools for downloading videos from supported websites and processing them using utilities like scene detection, trimming, frame analysis, and dataset creation for model training.
 
 Reddit: https://www.reddit.com/r/NSFW_API  
 Discord: https://discord.gg/bW4Bhkfk
@@ -16,6 +16,7 @@ Discord: https://discord.gg/bW4Bhkfk
   - [Splitting Videos by Scene](#splitting-videos-by-scene)
   - [Trimming Frames from Videos](#trimming-frames-from-videos)
   - [Analyzing Frames](#analyzing-frames)
+  - [Creating Datasets for Model Training](#creating-datasets-for-model-training)
 - [Contributing](#contributing)
   - [Adding Downloaders for Other Sites](#adding-downloaders-for-other-sites)
   - [Adding New Utilities](#adding-new-utilities)
@@ -27,7 +28,7 @@ Discord: https://discord.gg/bW4Bhkfk
 
 ## Overview
 
-**TripleX** is designed to help users download videos from supported websites and perform various processing tasks such as scene detection, trimming unwanted frames, and analyzing frames using machine learning models. The toolkit is modular, allowing for easy addition of new downloaders and utilities.
+**TripleX** is designed to help users download videos from supported websites and perform various processing tasks such as scene detection, trimming unwanted frames, analyzing frames using machine learning models, and creating datasets for training custom AI models. The toolkit is modular, allowing for easy addition of new downloaders and utilities.
 
 ## Features
 
@@ -35,6 +36,7 @@ Discord: https://discord.gg/bW4Bhkfk
 - **Scene Detection**: Uses PySceneDetect to split videos into individual scenes.
 - **Frame Trimming**: Trims a specified number of frames from the beginning of videos.
 - **Frame Analysis**: Analyzes frames extracted from videos using machine learning models for classification and detection.
+- **Dataset Creation**: Facilitates the creation of datasets for training video generation AI models like Mochi LoRA.
 - **Modular Utilities**: Easily add new utilities or downloaders to extend functionality.
 
 ## Directory Structure
@@ -141,7 +143,6 @@ Discord: https://discord.gg/bW4Bhkfk
      ```
 
      - This script will download the necessary model files from Google Drive and place them in the `models/` directory following the required structure.
-
      - Ensure you have an active internet connection.
 
    **Note**:
@@ -279,8 +280,8 @@ python utils/analyze_frames.py
 
      - **Pose Classification**: Classifies the pose in the frame.
      - **Watermark Detection**: Detects any watermarks present.
-     - **Genital Detection**: Identifies genital regions in the frame.
-     - **Penetration Detection**: Detects penetration activities.
+     - **Genital Detection**: Identifies regions in the frame.
+     - **Penetration Detection**: Detects specific activities.
 
 5. **Outputs**:
 
@@ -300,6 +301,37 @@ python utils/analyze_frames.py
 - **Adjustable Parameters**:
 
   - The script processes all videos by default. You can modify it to process specific videos or frames as needed.
+
+### Creating Datasets for Model Training
+
+**TripleX** can be used to create customized datasets for training video generation AI models like **Mochi LoRA**. By processing and extracting frames from videos, you can generate datasets suitable for model training.
+
+For a detailed guide on how to use this repository to create a dataset and train a Mochi LoRA model using Modal (a GPU app hosting platform), refer to the following article:
+
+- **Guide**: [How to Train a Video Model Using TripleX and Mochi LoRA](https://civitai.com/articles/9966)
+
+**Instructions**:
+
+1. **Prepare Your Dataset**:
+
+   - Use the utilities provided in **TripleX** to download videos, split them into scenes, and extract frames.
+   - The frames and metadata generated can form the basis of your training dataset.
+
+2. **Follow the Guide**:
+
+   - The linked guide provides step-by-step instructions on how to process the dataset created with TripleX and train a Mochi LoRA model.
+   - It includes information on setting up the training environment on Modal, configuring parameters, and running the training process.
+
+**Notes**:
+
+- **Model Training Considerations**:
+
+  - Ensure that you have the rights and permissions to use the videos and frames for training purposes.
+  - Be mindful of data privacy, legal compliance, and ethical considerations when creating and using datasets.
+
+- **Compatibility**:
+
+  - The dataset created using TripleX should be compatible with the training requirements of the Mochi LoRA model as described in the guide.
 
 ## Contributing
 
@@ -340,7 +372,7 @@ Contributions are welcome! You can contribute to this project in the following w
 
    ```bash
    git add .
-   git commit -m "Add new utility for frame analysis"
+   git commit -m "Add new utility for dataset creation"
    ```
 
 6. **Push to Your Fork**:
@@ -361,7 +393,7 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 - **Legal Compliance**: This toolkit is intended for educational and personal use. Users are responsible for ensuring they comply with all applicable laws, regulations, and terms of service of the websites they interact with.
 - **Content Rights**: Downloading and distributing copyrighted material without permission may infringe on intellectual property rights.
-- **Adult Content**: Some downloaders may interact with websites containing adult content. Users should be aware of and comply with all legal age restrictions and content regulations in their jurisdiction.
+- **Content Sensitivity**: Some downloaders may interact with websites containing sensitive content. Users should be aware of and comply with all legal age restrictions and content regulations in their jurisdiction.
 - **No Liability**: The authors and contributors of this project are not liable for any misuse of the toolkit.
 
 ---
