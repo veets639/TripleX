@@ -308,7 +308,9 @@ python utils/analyze_frames.py
 
 For a detailed guide on how to use this repository to create a dataset and train a Mochi LoRA model using Modal (a GPU app hosting platform), refer to the following article:
 
-- **Guide**: [How to Train a Video Model Using TripleX and Mochi LoRA](https://civitai.com/articles/9966)
+**How to Train a Video Model Using TripleX and Mochi LoRA**:
+- [GitHub Gist](https://gist.github.com/NSFW-API/5f3fde1b15295cb1c747a8dee1d9d18b)
+- [Civitai](https://civitai.com/articles/9966)
 
 **Instructions**:
 
