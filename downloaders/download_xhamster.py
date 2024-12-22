@@ -7,6 +7,7 @@ import subprocess
 from multiprocessing import Pool
 from urllib.parse import urljoin
 import logging
+import sys
 
 # Configure logging
 logging.basicConfig(
