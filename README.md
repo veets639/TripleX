@@ -2,6 +2,10 @@
 
 Welcome to the **TripleX** repository! This project provides tools for downloading videos from supported websites and processing them using utilities like scene detection and trimming.
 
+Reddit: https://www.reddit.com/r/NSFW_API
+
+Discord: https://discord.gg/bW4Bhkfk
+
 ## Table of Contents
 
 - [Overview](#overview)
