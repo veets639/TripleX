@@ -204,7 +204,7 @@ python utils/split_by_scene.py
 **Notes**:
 
 - **Content Detection Parameters**:
-  - The script uses default parameters for scene detection (`threshold=30.0`, `min_scene_len=15`).
+  - The script uses default parameters for scene detection (`threshold=15.0`, `min_scene_len=15`).
   - If you wish to adjust these parameters, you can modify the default values directly in the script.
 
 ### Trimming Frames from Videos
