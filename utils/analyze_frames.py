@@ -162,7 +162,7 @@ def analyze_frame(frame_path, pose_graph, watermark_graph, genital_graph, penetr
     }
 
     # Save results
-    output_dir = os.path.join('outputs', 'images')
+    output_dir = os.path.join('data', 'images')
     os.makedirs(output_dir, exist_ok=True)
     base_name = os.path.basename(frame_path)
     result_path = os.path.join(output_dir, base_name)
@@ -187,7 +187,7 @@ def main():
         logger.error('Error loading models.', exc_info=True)
         return
 
-    video_dir = os.path.join('outputs', 'scenes')
+    video_dir = os.path.join('data', 'clips')
     video_files = [os.path.join(root, file)
                    for root, _, files in os.walk(video_dir)
                    for file in files if file.lower().endswith(('.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.ts'))]

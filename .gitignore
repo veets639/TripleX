@@ -19,8 +19,8 @@ ENV/
 .virtualenv/
 .venv/
 
-# Ignore output directories
-outputs/
+# Ignore data directories
+data/
 
 # Ignore log files
 *.log

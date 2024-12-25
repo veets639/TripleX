@@ -24,7 +24,7 @@ def extract_sharpest_frame(video_path):
 
     cap.release()
     if sharpest_frame is not None:
-        output_dir = os.path.join('outputs', 'images')
+        output_dir = os.path.join('data', 'images')
         os.makedirs(output_dir, exist_ok=True)
         base_name = os.path.splitext(os.path.basename(video_path))[0]
         frame_filename = f"{base_name}_frame_{best_frame_number}.jpg"

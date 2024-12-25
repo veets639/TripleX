@@ -374,8 +374,8 @@ def main():
         return
     url = sys.argv[1]
 
-    # Set the destination folder to outputs/video
-    destination_folder = os.path.join(os.getcwd(), "outputs", "video")
+    # Set the destination folder to data/videos
+    destination_folder = os.path.join(os.getcwd(), "data", "videos")
     os.makedirs(destination_folder, exist_ok=True)
 
     video_id = get_id_from_url(url)

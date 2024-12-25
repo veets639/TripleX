@@ -45,27 +45,32 @@ Discord: https://discord.gg/bW4Bhkfk
 .
 ├── LICENSE
 ├── README.md
+├── data
+│         ├── clips
+│         ├── images
+│         └── videos
 ├── downloaders
-│   └── download_xhamster.py
-├── models
-├── outputs
-│   ├── images
-│   ├── scenes
-│   └── video
+│         └── download_xhamster.py
+├── guides
+│         ├── fine_tuning_hunyuan_video_with_finetrainers.md <--- Adding this guide
+│         └── fine_tuning_mochi_with_modal.md
 ├── requirements.txt
 ├── setup_models.py
 └── utils
     ├── analyze_frames.py
     ├── extract_sharpest_frame.py
     ├── split_by_scene.py
+    ├── training
+    │         └── hunyuan
+    │             └── output_clips_to_hunyuan_dataset <--- Adding this script
     └── trim_frame_beginning.py
 ```
 
 - **downloaders/**: Contains scripts for downloading videos from supported websites.
 - **models/**: Directory where machine learning models will be downloaded and stored.
-- **outputs/**: Default directory where videos and processed outputs are saved.
-  - **video/**: Contains downloaded videos.
-  - **scenes/**: Contains scenes extracted from videos.
+- **data/**: Default directory where videos and processed outputs are saved.
+  - **videos/**: Contains downloaded videos.
+  - **clips/**: Contains clips extracted from videos based on scene detection.
   - **images/**: Contains extracted frames and analysis results.
 - **requirements.txt**: Lists the Python dependencies required for the project.
 - **setup_models.py**: Script to download machine learning models from Google Drive.
@@ -173,14 +178,14 @@ python downloaders/download_xhamster.py <video_url>
    python downloaders/download_xhamster.py <video_url>
    ```
 
-2. **The Video** will be downloaded to `outputs/video`.
+2. **The Video** will be downloaded to `data/videos`.
 
-   - The script automatically saves the downloaded video in the `outputs/video` directory.
+   - The script automatically saves the downloaded video in the `data/videos` directory.
    - No additional input is required after providing the URL.
 
 ### Splitting Videos by Scene
 
-The `split_by_scene.py` script splits all videos in `outputs/video` into scenes based on content detection.
+The `split_by_scene.py` script splits all videos in `data/videos` into scenes based on content detection.
 
 **Example Usage**:
 
@@ -197,8 +202,8 @@ python utils/split_by_scene.py
   ```
 
 - **Processing**:
-  - The script processes all videos in `outputs/video`.
-  - For each video, it creates a subdirectory within `outputs/scenes` named after the video file (without extension).
+  - The script processes all videos in `data/videos`.
+  - For each video, it creates a subdirectory within `data/clips` named after the video file (without extension).
   - The split scenes are saved in the respective subdirectories.
 
 **Notes**:
@@ -209,7 +214,7 @@ python utils/split_by_scene.py
 
 ### Trimming Frames from Videos
 
-The `trim_frame_beginning.py` script trims a specified number of frames from the beginning of all videos in `outputs/video` and its subdirectories.
+The `trim_frame_beginning.py` script trims a specified number of frames from the beginning of all videos in `data/videos` and its subdirectories.
 
 **Example Usage**:
 
@@ -237,7 +242,7 @@ python utils/trim_frame_beginning.py [num_frames]
     ```
 
 - **Processing**:
-  - The script processes all videos in `outputs/video` and its subdirectories.
+  - The script processes all videos in `data/videos` and its subdirectories.
   - Overwrites the original video files after trimming.
 
 **Notes**:
@@ -260,7 +265,7 @@ python utils/analyze_frames.py
 1. **Ensure Scenes are Available**:
 
    - Before running the analysis, make sure you have split the videos into scenes using `split_by_scene.py`.
-   - The scenes should be located in `outputs/scenes`.
+   - The scenes should be located in `data/clips`.
 
 2. **Ensure Models are Set Up**:
 
@@ -274,7 +279,7 @@ python utils/analyze_frames.py
 
 4. **Processing**:
 
-   - The script processes each video in `outputs/scenes`.
+   - The script processes each video in `data/clips`.
    - For each video, it extracts the sharpest frame using `extract_sharpest_frame.py`.
    - The extracted frame is analyzed using the following models:
 
@@ -285,8 +290,8 @@ python utils/analyze_frames.py
 
 5. **Outputs**:
 
-   - Analysis results are saved in JSON format in `outputs/images`.
-   - The analyzed frames are also saved in `outputs/images`.
+   - Analysis results are saved in JSON format in `data/images`.
+   - The analyzed frames are also saved in `data/images`.
 
 **Notes**:
 

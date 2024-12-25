@@ -119,7 +119,7 @@ def main():
     print(f"Trimming {num_frames} frame(s) from the beginning of each video.")
 
     # Fixed input directory
-    input_directory = os.path.join(os.getcwd(), "outputs", "video")
+    input_directory = os.path.join(os.getcwd(), "data", "videos")
     # Supported video extensions
     video_extensions = ('.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.ts')
     # List to hold arguments for each video file
