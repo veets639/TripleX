@@ -5,18 +5,12 @@ import cv2
 import numpy as np
 
 def get_nearest_frame_count(frame_count, allowed_counts):
-    """
-    Returns the nearest allowed frame count less than or equal to the actual frame count.
-    """
     for count in sorted(allowed_counts, reverse=True):
         if frame_count >= count:
             return count
     return min(allowed_counts)
 
 def get_target_resolution(width, height, allowed_resolutions):
-    """
-    Rescales the resolution to the closest allowed size while maintaining aspect ratio.
-    """
     max_size = max(width, height)
     for size in sorted(allowed_resolutions):
         if max_size <= size:
