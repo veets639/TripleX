@@ -23,9 +23,8 @@ This comprehensive guide details everything you need to fine-tune **Hunyuan Vide
 ## **2. Prerequisites**
 
 Before getting started, ensure that you meet the following requirements:
-- Python version >= 3.8.
+- Python version >= 3.10.
 - Access to GPUs for training; renting an L40 or equivalent on vast.ai or RunPod is highly recommended.
-- Basic familiarity with the Hugging Face `diffusers` library.
 - Installed dependencies and access to datasets (instructions in the next sections).
 
 ---
@@ -34,11 +33,13 @@ Before getting started, ensure that you meet the following requirements:
 
 ### **Step 1: Clone the finetrainers Repository**
 
-Clone the finetrainers GitHub repository separately:
+Clone the finetrainers GitHub repository separately and set up a virtual environment:
 
 ```bash
 git clone https://github.com/a-r-r-o-w/finetrainers
 cd finetrainers
+python -m venv venv
+source venv/bin/activate
 ```
 
 ### **Step 2: Install Required Dependencies**
@@ -114,7 +115,7 @@ This script:
 
 ```bash
 python utils/training/hunyuan/output_clips_to_hunyuan_dataset.py \
-  --input_videos_dir ./data/clips/{VIDEO_ID} \
+  --input_videos_dir ./data/clips \
   --output_dataset_dir ./data/hunyuan_dataset
 ```
 
