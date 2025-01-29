@@ -11,6 +11,8 @@ Discord: https://discord.gg/mjnStFuCYh
 - [Features](#features)
 - [Directory Structure](#directory-structure)
 - [Installation](#installation)
+  - [Environment Variables](#environment-variables)
+    - [Setting Up Reddit Credentials](#setting-up-reddit-credentials)
 - [Usage](#usage)
   - [Downloading Videos](#downloading-videos)
   - [Downloading from Reddit](#downloading-from-reddit)
@@ -101,32 +103,52 @@ Discord: https://discord.gg/mjnStFuCYh
 5. (Optional) Install TensorFlow and Additional Dependencies for further processing:
    - `pip install tensorflow opencv-python numpy`
 
-### Environment Variables
+### Environment Variables  
 
 If you plan to use the Reddit downloader, you’ll need Reddit API credentials. We recommend storing them in a .env file. We’ve provided an example named .env_example at the repository root:
 
-─────────────────────────────────────────────────────────────────────────────────
+```
 REDDIT_CLIENT_ID=
 REDDIT_CLIENT_SECRET=
-REDDIT_USER_AGENT=python:[App Name]:v1.0 (by /u/[Your username])
-─────────────────────────────────────────────────────────────────────────────────
-
-To set this up:
+REDDIT_USER_AGENT=python:[App Name]:v1.0 (by /u/[YourUsername])
+```
 
 1. Copy .env_example to .env:
-   - `cp .env_example .env`
+   `cp .env_example .env`
 
-2. Edit .env and fill in your Reddit credentials. For example:
-   REDDIT_CLIENT_ID=abc123def456  
-   REDDIT_CLIENT_SECRET=abc123def4567890abcdef12345  
-   REDDIT_USER_AGENT=python:MyRedditBot:v1.0 (by /u/HonestRedditor)
+2. Edit .env and fill in your Reddit credentials. See the [Setting Up Reddit Credentials](#setting-up-reddit-credentials) section for how to obtain them.
 
-   Make sure your user agent is descriptive enough (as recommended by Reddit).
-
-3. (Optional) Ensure .env is in your .gitignore so you don’t accidentally commit secrets:
+3. Ensure .env is in your .gitignore so you don’t accidentally commit secrets:
    `echo ".env" >> .gitignore`
 
 Once .env is set up, scripts like reddit_downloader.py will load these environment variables automatically (via python-dotenv) and use them to authenticate against Reddit.
+
+#### Setting Up Reddit Credentials
+
+To obtain the necessary client ID and secret for Reddit:
+
+1. Create or log into your Reddit account.  
+2. Open your apps preferences page:  
+   https://www.reddit.com/prefs/apps/  
+3. Click “Create another app…” at the bottom of the page.  
+4. Provide an “App name” → pick any descriptive name, e.g. “TripleXScraper.”  
+5. Under “App type,” select “script.”  
+6. Enter a short description. The “About URL” and “Redirect URL” fields can be any URL (e.g. “http://localhost/”).  
+7. Click “Create app.”  
+8. Once created, you’ll see something like:  
+   ```name: TripleXScraper  
+   personal use script: ...
+   secret: ...  
+   redirect uri: http://localhost/
+   ```
+
+   Copy the “personal use script” value into REDDIT_CLIENT_ID and the “secret” value into REDDIT_CLIENT_SECRET.  
+   Your .env might look like this:  
+   REDDIT_CLIENT_ID=abc123def456  
+   REDDIT_CLIENT_SECRET=abc123def4567890abcdef12345  
+   REDDIT_USER_AGENT=python:TripleXScraper:v1.0 (by /u/YourUsername)
+
+The user agent can be any descriptive string, but Reddit recommends using the format “python:app_name:vX.Y (by /u/username).”  
 
 ## Usage
 
