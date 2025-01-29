@@ -31,3 +31,9 @@ data/
 
 # Ignore models files
 models/
+
+# Ignore environment variables
+.env
+
+# Ignore downloaded Reddit data
+/reddit_data

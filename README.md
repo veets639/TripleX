@@ -1,6 +1,6 @@
 # TripleX by NSFW API
 
-Welcome to the **TripleX** repository! This project provides tools for downloading videos from supported websites and processing them using utilities like scene detection, trimming, frame analysis, and dataset creation for model training.
+Welcome to the **TripleX** repository! This project provides tools for downloading videos from supported websites (such as xHamster) and from Reddit, then processing these files using utilities like scene detection, trimming, frame analysis, and dataset creation for model training.
 
 Reddit: https://www.reddit.com/r/NSFW_API  
 Discord: https://discord.gg/mjnStFuCYh
@@ -13,14 +13,12 @@ Discord: https://discord.gg/mjnStFuCYh
 - [Installation](#installation)
 - [Usage](#usage)
   - [Downloading Videos](#downloading-videos)
+  - [Downloading from Reddit](#downloading-from-reddit)
   - [Splitting Videos by Scene](#splitting-videos-by-scene)
   - [Trimming Frames from Videos](#trimming-frames-from-videos)
   - [Analyzing Frames](#analyzing-frames)
   - [Creating Datasets for Model Training](#creating-datasets-for-model-training)
 - [Contributing](#contributing)
-  - [Adding Downloaders for Other Sites](#adding-downloaders-for-other-sites)
-  - [Adding New Utilities](#adding-new-utilities)
-  - [General Contribution Steps](#general-contribution-steps)
 - [License](#license)
 - [Disclaimer](#disclaimer)
 - [Additional Notes](#additional-notes)
@@ -32,11 +30,11 @@ Discord: https://discord.gg/mjnStFuCYh
 
 ## Features
 
-- **Video Downloaders**: Currently supports downloading videos from xHamster. Designed to be extensible for other sites.
-- **Scene Detection**: Uses PySceneDetect to split videos into individual scenes.
-- **Frame Trimming**: Trims a specified number of frames from the beginning of videos.
-- **Frame Analysis**: Analyzes frames extracted from videos using machine learning models for classification and detection.
-- **Dataset Creation**: Facilitates the creation of datasets for training video generation AI models like Mochi LoRA.
+- **Video Downloaders**: Currently supports downloading videos from xHamster and Reddit.  
+- **Scene Detection**: Uses PySceneDetect to split videos into individual scenes.  
+- **Frame Trimming**: Trims a specified number of frames from the beginning of videos.  
+- **Frame Analysis**: Analyzes frames extracted from videos using machine learning models.  
+- **Dataset Creation**: Facilitates the creation of datasets for model training.  
 - **Modular Utilities**: Easily add new utilities or downloaders to extend functionality.
 
 ## Directory Structure
@@ -50,7 +48,8 @@ Discord: https://discord.gg/mjnStFuCYh
 │         ├── images
 │         └── videos
 ├── downloaders
-│         └── download_xhamster.py
+│         ├── download_xhamster.py
+|         └── reddit_downloader.py
 ├── guides
 │         ├── fine_tuning_hunyuan_video_with_finetrainers.md <--- Adding this guide
 │         └── fine_tuning_mochi_with_modal.md
@@ -82,77 +81,52 @@ Discord: https://discord.gg/mjnStFuCYh
 
 ## Installation
 
-1. **Clone the Repository**
+1. Clone the Repository:
+   - `git clone https://github.com/NSFW-API/TripleX.git`
+   - `cd TripleX`
 
-   ```bash
-   git clone https://github.com/NSFW-API/TripleX.git
-   cd TripleX
-   ```
+2. Create a Virtual Environment:
+   - `python3 -m venv venv`  
+   - `source venv/bin/activate`  # On macOS/Linux  
+   (On Windows: `venv\Scripts\activate`)
 
-2. **Create a Virtual Environment**
+3. Install Dependencies:
+   - `pip install -r requirements.txt`
 
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+4. Install FFmpeg:
+   - macOS:     `brew install ffmpeg`
+   - Ubuntu:    `sudo apt-get install ffmpeg`  
+   - Windows:   Download from https://ffmpeg.org, add to PATH
 
-3. **Install Dependencies**
+5. (Optional) Install TensorFlow and Additional Dependencies for further processing:
+   - `pip install tensorflow opencv-python numpy`
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Environment Variables
 
-4. **Install FFmpeg**
+If you plan to use the Reddit downloader, you’ll need Reddit API credentials. We recommend storing them in a .env file. We’ve provided an example named .env_example at the repository root:
 
-   - **macOS**:
+─────────────────────────────────────────────────────────────────────────────────
+REDDIT_CLIENT_ID=
+REDDIT_CLIENT_SECRET=
+REDDIT_USER_AGENT=python:[App Name]:v1.0 (by /u/[Your username])
+─────────────────────────────────────────────────────────────────────────────────
 
-     ```bash
-     brew install ffmpeg
-     ```
+To set this up:
 
-   - **Ubuntu/Debian**:
+1. Copy .env_example to .env:
+   - `cp .env_example .env`
 
-     ```bash
-     sudo apt-get install ffmpeg
-     ```
+2. Edit .env and fill in your Reddit credentials. For example:
+   REDDIT_CLIENT_ID=abc123def456  
+   REDDIT_CLIENT_SECRET=abc123def4567890abcdef12345  
+   REDDIT_USER_AGENT=python:MyRedditBot:v1.0 (by /u/HonestRedditor)
 
-   - **Windows**:
+   Make sure your user agent is descriptive enough (as recommended by Reddit).
 
-     - Download FFmpeg from the [official website](https://ffmpeg.org/download.html).
-     - Add FFmpeg to your system PATH.
+3. (Optional) Ensure .env is in your .gitignore so you don’t accidentally commit secrets:
+   `echo ".env" >> .gitignore`
 
-5. **Install TensorFlow and Additional Dependencies**
-
-   - **TensorFlow**:
-
-     ```bash
-     pip install tensorflow
-     ```
-
-   - **OpenCV and NumPy**:
-
-     ```bash
-     pip install opencv-python numpy
-     ```
-
-6. **Set Up Machine Learning Models**
-
-   The machine learning models required for frame analysis are stored externally due to their size. Use the provided script to download and set up the models.
-
-   **Instructions**:
-
-   - **Run the Model Setup Script**:
-
-     ```bash
-     python setup_models.py
-     ```
-
-     - This script will download the necessary model files from Google Drive and place them in the `models/` directory following the required structure.
-     - Ensure you have an active internet connection.
-
-   **Note**:
-
-   - The `setup_models.py` script handles downloading large model files that cannot be included directly in the repository due to size limitations.
+Once .env is set up, scripts like reddit_downloader.py will load these environment variables automatically (via python-dotenv) and use them to authenticate against Reddit.
 
 ## Usage
 
@@ -182,6 +156,52 @@ python downloaders/download_xhamster.py <video_url>
 
    - The script automatically saves the downloaded video in the `data/videos` directory.
    - No additional input is required after providing the URL.
+
+### Downloading from Reddit
+
+You can download images, GIFs, or videos from any public subreddit via the reddit_downloader.py script:
+
+1. Locate reddit_downloader.py in the “downloaders” directory.
+2. Ensure you have set up your Reddit API credentials in the script or via environment variables if you need them.  
+3. Ensure .env is configured
+4. Run the script from the root of the repository (or wherever you keep your code), specifying which subreddits to scrape and any desired flags.
+
+Standard usage looks like this:
+
+```
+python downloaders/reddit_downloader.py SUBREDDIT_NAME [ADDITIONAL_SUBREDDITS] [OPTIONS]
+```
+
+For example:
+
+```
+python downloaders/reddit_downloader.py TittyDrop --limit 100 --convert-gifs
+```
+
+- r/TittyDrop is the subreddit you want to scrape.  
+- `--limit 100` means get up to 100 “hot” posts.  
+- `--convert-gifs` automatically converts downloaded GIFs into MP4s, stored in data/videos.
+
+Below are the main flags you can use:
+
+- `--limit N`           : Number of posts to scrape per subreddit (default=10).  
+- `--skip-images`       : Skip downloading standard image files (.jpg, .png, etc.).  
+- `--skip-gifs`         : Skip downloading .gif files.  
+- `--skip-videos`       : Skip downloading video files (.mp4, .webm, etc.).  
+- `--convert-gifs`      : Convert any downloaded .gif to .mp4 (saved in data/videos).  
+- `--skip-ingest`       : Skip creating new JSON (use existing JSON from previous runs).  
+- `--skip-download`     : Skip downloading (just scrape or ingest information).  
+
+When running without any flags, the script will:
+
+1. Scrape the specified subreddits into JSON files located in reddit_data/.  
+2. Ingest those JSON files, determining which links are images, GIFs, or videos.  
+3. Download each media file into the appropriate directory:  
+   - data/images for static images (jpg, png, etc.)  
+   - data/gifs for raw GIF files  
+   - data/videos for videos (mp4, etc.) and for GIF→MP4 conversions (if --convert-gifs is used).  
+
+After running the script, you can find your media in the data/images or data/videos directories. You can further process them with other TripleX utilities (scene detection, trimming, dataset creation, etc.).  
 
 ### Splitting Videos by Scene
 
