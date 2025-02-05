@@ -29,10 +29,18 @@ def rewrite_composite_caption(composite_caption):
     # Build a rewriting prompt that asks the model to reframe the caption.
     # IMPORTANT: The rewritten caption must keep all the scene details but avoid redundant phrases.
     rewriting_prompt = (
-            "You are a skilled language rewriter. Reformat the following composite caption into a cohesive, "
-            "concise narrative that preserves all the scene details and nuances without repeating phrases unnecessarily. "
-            "Do not lose any important details. Use elegant language to describe the scene. \n\n"
-            "Composite Caption:\n" + composite_caption
+            f"""
+            You are a language rewriter. Below is a composite caption generated from multiple video frames. Your goal is to merge any repeated sentences or phrases into a single mention while preserving every specific detail. Do not remove or alter information about nudity, positions, or body parts. Keep the same plain, everyday language used in the composite caption. Do not introduce new information or alter the tone.
+
+            Detailed Requirements:
+            • If multiple frames mention the same action (e.g., 'pulling down panties'), consolidate them into a single statement without removing the action altogether.  
+            • Keep the final output as one cohesive paragraph or a short set of paragraphs that flows naturally as if describing the situation in casual conversation.  
+            • Preserve the mention of all important details from the original text, including clothing, nudity, poses, lighting, or background details.  
+            • Do not add explanations, disclaimers, or meta phrases like ‘video opens with…’ or ‘here’s your final caption.’  
+            
+            Final Caption to Rewrite:
+            {composite_caption}
+            """
     )
 
     # Call the gemini-1.5-flash model using the rewriting prompt.
@@ -71,17 +79,28 @@ def get_frame_caption(image_bytes, timestamp, model_list, custom_prompt=""):
         "data": base64.b64encode(image_bytes).decode('utf-8')
     }
     # Default prompt instructions for this frame.
-    default_prompt = f"""You are a detailed visual description expert. For the provided video frame at timestamp {timestamp} seconds, generate a caption in Markdown format that strictly adheres to the schema provided below.
-Instructions:
-• For every person or discernible human element visible in the image, add a new person entry.
-  - For each of these entries, include details such as physical appearance, attire, pose, facial expression, any accessories (like piercings, tattoos, jewelry), and any visible nudity.
-  - When describing partially visible body parts, use explicit, clinical anatomical terms. For instance, if the upper chest is visible on a female subject, use the term “breasts” rather than vague terms like “torso” or “midriff.”
-    ▸ Example – Correct: "A subject with exposed breasts"
-    ▸ Example – Incorrect: "A subject with a bare torso"
-• Describe the location and lighting (e.g., background detail, setting, and ambiance) in precise, plain language.
-• Provide a detailed "scene_description" such that a painter or technician could recreate the frame exactly from your description.
-• Describe any movement or action evident in the frame.
-"""
+    default_prompt = f"""
+    You are a detailed visual description expert. For the provided video frame at timestamp {timestamp} seconds, generate a caption in Markdown format that adheres to the following rules:
+
+    • Include an entry for every visible person or discernible human element.  
+      – Describe each person's appearance, attire, pose, any accessories, and any visible nudity.  
+      – Use everyday terms for body parts (e.g., 'butt' instead of 'buttocks') and avoid overly technical or scientific language.  
+      – If a female subject’s upper chest is visible, refer to it as “breasts.”  
+    • Provide a clear 'scene_description' that would let someone recreate the frame exactly (location, background details, ambiance, lighting).  
+    • Describe any movement or action evident in the frame.  
+    • Always use plain, colloquial language. Use straightforward terms like 'Lifting up her bra to show her breasts' or 'Pulling down her panties'.  
+    • Do not add extra commentary or interpretations beyond what is visible.  
+    • If you have custom instructions (e.g., mention a specific pose or detail), integrate them seamlessly.  
+    
+    Return the final output as a structured Markdown block matching the basic schema:
+    {{
+    "persons": [...],
+      "location": ...,
+      "scene_description": ...,
+      "movement": ...
+    }}
+    (or a similar format). 
+    """
     # If the user provided extra instructions, append them to the default prompt.
     if custom_prompt:
         default_prompt += "\nAdditional instructions: " + custom_prompt.strip() + "\n"
@@ -99,11 +118,17 @@ def get_composite_caption(frame_data_list, composite_model_list, custom_prompt="
         inputs.append(frame_data["image_input"])
         caption_str = frame_data["caption"]
         inputs.append("Caption: " + caption_str)
-    composite_prompt = (
-        "Using the above information from each frame (including the image, timestamp, and its detailed caption), "
-        "generate a composite caption that *only* describes the observed events and actions in plain language. "
-        "Do not include any meta commentary such as 'video opens with' or 'here is your caption'; simply state what is happening."
-    )
+    composite_prompt = """
+    Using the provided data from each frame (including images, timestamps, and detailed captions), generate a single composite caption that captures everything happening throughout the video in plain language. Incorporate all details (poses, attire, nudity, actions), but if the same point is repeated across frames, merge it into one mention rather than repeating it verbatim.
+
+    Instructions:  
+    • Do not leave out any unique detail from the individual captions.  
+    • Do not introduce new information or meta commentary such as ‘the video starts with…’ or ‘here is your caption.’  
+    • Merge repeated descriptions of the same action or pose into one statement if they are truly redundant.  
+    • Always use simple, everyday language (e.g., 'pulling down panties,' 'vagina,' 'breasts,' 'butt').  
+    • Keep the flow as if an average person is describing the progression of events.  
+    • At the end, your composite caption should sound like a natural, single-paragraph narrative describing the entire sequence of events and actions across the video.  
+    """
     # Append extra custom instructions if provided.
     if custom_prompt:
         composite_prompt += "\nAdditional instructions: " + custom_prompt.strip() + "\n"
