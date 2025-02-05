@@ -45,6 +45,9 @@ Discord: https://discord.gg/mjnStFuCYh
 .
 ├── LICENSE
 ├── README.md
+├── captioners/  
+│   ├── gemini.py
+│   └── open_ai.py        <--- Former get_captions.py has been moved here  
 ├── data
 │         ├── clips
 │         ├── images
@@ -53,7 +56,7 @@ Discord: https://discord.gg/mjnStFuCYh
 │         ├── download_xhamster.py
 |         └── reddit_downloader.py
 ├── guides
-│         ├── fine_tuning_hunyuan_video_with_finetrainers.md <--- Adding this guide
+│         ├── fine_tuning_hunyuan_video_with_finetrainers.md
 │         └── fine_tuning_mochi_with_modal.md
 ├── requirements.txt
 ├── setup_models.py
@@ -63,10 +66,11 @@ Discord: https://discord.gg/mjnStFuCYh
     ├── split_by_scene.py
     ├── training
     │         └── hunyuan
-    │             └── output_clips_to_hunyuan_dataset <--- Adding this script
+    │             └── output_clips_to_hunyuan_dataset
     └── trim_frame_beginning.py
 ```
 
+- **captioners/**: Contains scripts for captioning images and videos.
 - **downloaders/**: Contains scripts for downloading videos from supported websites.
 - **models/**: Directory where machine learning models will be downloaded and stored.
 - **data/**: Default directory where videos and processed outputs are saved.
@@ -381,6 +385,64 @@ For a detailed guide on how to use this repository to create a dataset and train
 - **Compatibility**:
 
   - The dataset created using TripleX should be compatible with the training requirements of the Mochi LoRA model as described in the guide.
+
+## Captioning with Gemini API
+
+In addition to its video processing utilities, **TripleX** now includes a new captioning tool located under the `/captioners` directory. This new script – `gemini.py` – generates detailed captions for all images and videos in a specified directory. It works by processing individual frames from videos (or single images) and then composing a final, cohesive composite caption for each file. The script uses Google’s Gemini models as its backend with fallback options for reliability.
+
+### Key Features
+
+• Generates frame-level captions for videos using a configurable sampling rate (frames per second).  
+• Supports both video files (e.g., .mp4, .mov, .avi, .webm, etc.) and image files (e.g., .jpg, .png, .heic, etc.).  
+• Uses fallback Gemini models for robust caption generation in case of rate limits or resource issues.  
+• Creates a composite caption that unifies the descriptions from individual frames.  
+• Offers an optional rewriting step that reformats the composite caption into a concise and elegant narrative.  
+• Supports parallel processing for faster captioning of video frames.  
+• Optionally moves the source files and their generated caption files to a specified output directory after successful processing.
+
+### Installation and Environment Setup
+
+1. Ensure all dependencies are installed (listed in `requirements.txt` – additional packages used by Gemini captioner include `cv2` (OpenCV), `google-generativeai`, and `python-dotenv`).  
+2. Set your Gemini API key as an environment variable. You can add the following entry to your `.env` file at the root of the repository:
+  
+   GEMINI_API_KEY=your_gemini_api_key_here
+
+   This key is required to authenticate with the Gemini API. If you are not already using a `.env` file for other credentials, consider creating one and adding it to your `.gitignore`.
+
+### Usage
+
+Run the captioner from the command line by specifying the directory containing video and/or image files:
+
+  python captioners/gemini.py --dir <path_to_media_directory>
+
+The script supports additional options:
+
+- --fps
+  - Specify the frames per second at which to sample video files (default is 1 FPS).
+
+- --max_frames  
+  - (Optional) Limit the total number of video frames processed per video.
+
+- --output_dir  
+  - (Optional) If provided, once captioning succeeds the script moves the source file and the generated caption files (a JSON file with both the individual frame captions and composite caption, as well as a plain text composite caption) into the specified directory.
+
+- --custom_prompt  
+  - (Optional) A custom string with extra instructions to refine the caption detail. This prompt is applied to both the individual frame captioning and the composite caption generation.
+
+#### Example
+
+To caption all media files in the `media` folder at 1 FPS sampling, with a custom prompt and move completed files to `finished_captions`:
+
+  python captioners/gemini.py --dir media --fps 1 --custom_prompt "Include specific observations about background and accessories." --output_dir finished_captions
+
+### How It Works
+
+1. For video files, the script reads the file via OpenCV and extracts frames at the specified interval (adjustable with the `--fps` flag). Each frame is encoded as a JPEG and sent to the Gemini API for caption generation, making use of parallel processing to speed up the workflow.  
+2. For image files, it generates a caption directly for the single image.  
+3. After individual captions are gathered, the tool creates a composite caption that combines the observations from each frame. It then uses a rewriting model to reframe the composite caption as a refined narrative.  
+4. The final outputs are saved in the same directory as the source file (or moved to an output directory if provided) as:  
+   -  A JSON file (with detailed frame-level data and the composite caption) and  
+   -  A text file with the composite caption.
 
 ## Contributing
 

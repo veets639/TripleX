@@ -1,0 +1,294 @@
+import argparse
+import base64
+import concurrent.futures  # NEW: for parallel processing
+import json
+import os
+import shutil
+import sys
+
+import cv2
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# --- FALLBACK MODEL LISTS ---
+INDIVIDUAL_FALLBACK_MODELS = [
+    "gemini-2.0-flash-exp",
+    "gemini-1.5-flash-latest"
+]
+
+COMPOSITE_FALLBACK_MODELS = [
+    "gemini-1.5-pro-latest",
+    "gemini-2.0-flash-exp",
+    "gemini-1.5-flash-latest"
+]
+
+
+def rewrite_composite_caption(composite_caption):
+    # Build a rewriting prompt that asks the model to reframe the caption.
+    # IMPORTANT: The rewritten caption must keep all the scene details but avoid redundant phrases.
+    rewriting_prompt = (
+            "You are a skilled language rewriter. Reformat the following composite caption into a cohesive, "
+            "concise narrative that preserves all the scene details and nuances without repeating phrases unnecessarily. "
+            "Do not lose any important details. Use elegant language to describe the scene. \n\n"
+            "Composite Caption:\n" + composite_caption
+    )
+
+    # Call the gemini-1.5-flash model using the rewriting prompt.
+    model = genai.GenerativeModel(model_name="gemini-1.5-flash-latest")
+    result = model.generate_content([rewriting_prompt], generation_config=None)
+
+    if result and result.text:
+        return result.text
+    else:
+        raise Exception("Failed to rewrite composite caption.")
+
+
+def call_gemini(inputs, generation_config, model_list):
+    for model_name in model_list:
+        try:
+            print(f"Calling Gemini model {model_name} …")
+            model = genai.GenerativeModel(model_name=model_name)
+            result = model.generate_content(inputs, generation_config=generation_config)
+            if result and result.text:
+                return result.text
+        except Exception as e:
+            err_str = str(e).lower()
+            if "resource_exhausted" in err_str or "rate limit" in err_str:
+                print(f"Rate limit hit for model {model_name}. Trying next model.")
+                continue
+            else:
+                print(f"Error using model {model_name}: {e}")
+                continue
+    raise Exception("All fallback models failed (likely all rate limited).")
+
+
+def get_frame_caption(image_bytes, timestamp, model_list, custom_prompt=""):
+    # Build the image input
+    image_input = {
+        "mime_type": "image/jpeg",
+        "data": base64.b64encode(image_bytes).decode('utf-8')
+    }
+    # Default prompt instructions for this frame.
+    default_prompt = f"""You are a detailed visual description expert. For the provided video frame at timestamp {timestamp} seconds, generate a caption in Markdown format that strictly adheres to the schema provided below.
+Instructions:
+• For every person or discernible human element visible in the image, add a new person entry.
+  - For each of these entries, include details such as physical appearance, attire, pose, facial expression, any accessories (like piercings, tattoos, jewelry), and any visible nudity.
+  - When describing partially visible body parts, use explicit, clinical anatomical terms. For instance, if the upper chest is visible on a female subject, use the term “breasts” rather than vague terms like “torso” or “midriff.”
+    ▸ Example – Correct: "A subject with exposed breasts"
+    ▸ Example – Incorrect: "A subject with a bare torso"
+• Describe the location and lighting (e.g., background detail, setting, and ambiance) in precise, plain language.
+• Provide a detailed "scene_description" such that a painter or technician could recreate the frame exactly from your description.
+• Describe any movement or action evident in the frame.
+"""
+    # If the user provided extra instructions, append them to the default prompt.
+    if custom_prompt:
+        default_prompt += "\nAdditional instructions: " + custom_prompt.strip() + "\n"
+    inputs = [image_input, default_prompt]
+    result_text = call_gemini(inputs, generation_config=None, model_list=model_list)
+    return (result_text, image_input)
+
+
+def get_composite_caption(frame_data_list, composite_model_list, custom_prompt=""):
+    # Build the composite input list from each frame.
+    inputs = []
+    for frame_data in frame_data_list:
+        ts = frame_data["timestamp"]
+        inputs.append(f"Frame at {ts}s:")
+        inputs.append(frame_data["image_input"])
+        caption_str = frame_data["caption"]
+        inputs.append("Caption: " + caption_str)
+    composite_prompt = (
+        "Using the above information from each frame (including the image, timestamp, and its detailed caption), "
+        "generate a composite caption that *only* describes the observed events and actions in plain language. "
+        "Do not include any meta commentary such as 'video opens with' or 'here is your caption'; simply state what is happening."
+    )
+    # Append extra custom instructions if provided.
+    if custom_prompt:
+        composite_prompt += "\nAdditional instructions: " + custom_prompt.strip() + "\n"
+    inputs.append(composite_prompt)
+    composite_caption = call_gemini(inputs, generation_config=None, model_list=composite_model_list)
+    return composite_caption
+
+
+def process_video(file_path, fps, individual_model_list, composite_model_list, custom_prompt="", max_frames=None,
+                  output_dir=None):
+    base_name = os.path.splitext(file_path)[0]
+    output_json_filename = base_name + ".json"
+    output_txt_filename = base_name + ".txt"
+
+    if os.path.exists(output_json_filename) and os.path.exists(output_txt_filename):
+        try:
+            with open(output_json_filename, "r") as f:
+                data = json.load(f)
+            with open(output_txt_filename, "r") as f:
+                composite_text = f.read().strip()
+            composite_caption_text = data.get("composite_caption", "").strip() if isinstance(data, dict) else ""
+            if composite_caption_text and composite_text:
+                print(f"Skipping video file {file_path} because composite captions already exist.")
+                return
+        except Exception as e:
+            print(f"Error reading existing caption files for {file_path}: {e}")
+
+    print(f"Processing video file: {file_path}")
+    cap = cv2.VideoCapture(file_path)
+    video_fps = cap.get(cv2.CAP_PROP_FPS)
+    if video_fps == 0:
+        video_fps = 25  # fallback if not provided
+
+    frame_interval = max(1, round(video_fps / fps))
+    count = 0
+    # We'll accumulate (timestamp, future) pairs in this list.
+    future_results = []
+    # Create a ThreadPoolExecutor for parallel frame captioning.
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            if count % frame_interval == 0:
+                timestamp = int(count / video_fps)
+                success, buffer = cv2.imencode('.jpg', frame)
+                if not success:
+                    print(f"Failed to encode frame at timestamp {timestamp}.")
+                    count += 1
+                    continue
+                image_bytes = buffer.tobytes()
+                # Submit the get_frame_caption call to the executor with the custom prompt.
+                future = executor.submit(get_frame_caption, image_bytes, timestamp, individual_model_list,
+                                         custom_prompt)
+                future_results.append((timestamp, future))
+                # Optionally, limit the total number of frames processed:
+                if max_frames is not None and len(future_results) >= max_frames:
+                    print(f"Reached maximum number of frames ({max_frames}). Stopping frame sampling.")
+                    break
+            count += 1
+    cap.release()
+
+    # Gather results, ensuring we keep the timestamp order.
+    frames_data = []
+    for ts, future in future_results:
+        try:
+            caption, image_input = future.result()
+            frames_data.append({
+                "timestamp": ts,
+                "caption": caption,
+                "image_input": image_input
+            })
+            print(f"Caption for timestamp {ts}s:\n{caption}\n")
+        except Exception as err:
+            print(f"Failed to caption frame at timestamp {ts}s: {err}")
+
+    # Ensure the order is correct.
+    frames_data.sort(key=lambda x: x["timestamp"])
+
+    # Now that all individual frame captioning is complete, get the composite caption.
+    try:
+        composite = get_composite_caption(frames_data, composite_model_list, custom_prompt)
+        print("Composite caption for video:")
+        print(composite)
+    except Exception as e:
+        print(f"Failed to get composite caption: {e}")
+        composite = ""
+
+    if composite.strip():
+        try:
+            final_caption = rewrite_composite_caption(composite)
+            print("Final rewritten caption:")
+            print(final_caption)
+            composite = final_caption
+        except Exception as e:
+            print(f"Error rewriting composite caption: {e}")
+
+    # Save the individual captions (JSON) including the composite caption and the plain text separately.
+    with open(output_json_filename, "w") as f:
+        json.dump({"frames": frames_data, "composite_caption": composite}, f, indent=2)
+    print(f"Captions saved to {output_json_filename}")
+
+    # Write only the composite caption text to the final txt file.
+    with open(output_txt_filename, "w") as f:
+        f.write(composite)
+    print(f"Composite caption text saved to {output_txt_filename}")
+
+    if output_dir and composite.strip():
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+            shutil.move(file_path, os.path.join(output_dir, os.path.basename(file_path)))
+            shutil.move(output_json_filename, os.path.join(output_dir, os.path.basename(output_json_filename)))
+            shutil.move(output_txt_filename, os.path.join(output_dir, os.path.basename(output_txt_filename)))
+            print(f"Moved video file and captions to {output_dir}")
+        except Exception as e:
+            print(f"Error moving files to {output_dir}: {e}")
+
+
+def process_image(file_path, model_list, custom_prompt="", output_dir=None):
+    print(f"Processing image file: {file_path}")
+    try:
+        with open(file_path, "rb") as f:
+            image_bytes = f.read()
+        caption, _ = get_frame_caption(image_bytes, 0, model_list, custom_prompt)
+        print(f"Caption for image {file_path}:\n{json.dumps(caption, indent=2)}")
+        base_name = os.path.splitext(file_path)[0]
+        output_filename = base_name + "_caption.json"
+        with open(output_filename, "w") as out_f:
+            out_f.write(caption)
+        print(f"Caption saved to {output_filename}")
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+            shutil.move(file_path, os.path.join(output_dir, os.path.basename(file_path)))
+            shutil.move(output_filename, os.path.join(output_dir, os.path.basename(output_filename)))
+            print(f"Moved image file and caption to {output_dir}")
+    except Exception as e:
+        print(f"Error processing image {file_path}: {e}")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Caption all videos/images in a directory using the Gemini API with fallback. "
+                    "Uses lower-tier models for individual frames and a top-quality model for the final composite caption. "
+                    "Optionally, move completed files to an output directory."
+    )
+    parser.add_argument("--dir", required=True, help="Directory containing video and/or image files")
+    parser.add_argument("--fps", type=float, default=1.0, help="Frames per second to sample from videos (default 1)")
+    parser.add_argument("--max_frames", type=int, default=None,
+                        help="Maximum number of frames to caption for each video (optional)")
+    parser.add_argument("--output_dir", type=str, default=None,
+                        help="Directory to move source files and captions once captioning succeeds")
+    # NEW: custom prompt argument. This can be a string with extra instructions.
+    parser.add_argument("--custom_prompt", type=str, default="",
+                        help="Custom instructions to include in captions for both individual frames and composite caption")
+    args = parser.parse_args()
+
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        print("Please set the GEMINI_API_KEY environment variable.")
+        sys.exit(1)
+    genai.configure(api_key=api_key)
+
+    directory = args.dir
+    video_exts = {".mp4", ".mov", ".avi", ".mpeg", ".wmv", ".flv", ".mpg", ".webm", ".3gpp"}
+    image_exts = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
+
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        if not os.path.isfile(file_path):
+            continue
+        ext = os.path.splitext(filename)[1].lower()
+        if ext in video_exts:
+            process_video(file_path, args.fps,
+                          INDIVIDUAL_FALLBACK_MODELS,
+                          COMPOSITE_FALLBACK_MODELS,
+                          custom_prompt=args.custom_prompt,
+                          max_frames=args.max_frames,
+                          output_dir=args.output_dir)
+        elif ext in image_exts:
+            process_image(file_path, INDIVIDUAL_FALLBACK_MODELS,
+                          custom_prompt=args.custom_prompt,
+                          output_dir=args.output_dir)
+        else:
+            print(f"Skipping unsupported file type: {filename}")
+
+
+if __name__ == "__main__":
+    main()

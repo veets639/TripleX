@@ -63,22 +63,14 @@ def extract_urls(text):
 
 
 def scrape_subreddits_list(sub_list, output_dir="reddit_data", limit=None):
-    """
-    Scrape each subreddit in sub_list (a list of strings).
-    Writes individual .json files into output_dir.
-
-    :param sub_list: Python list of subreddit names.
-    :param output_dir: Where to write output .json files.
-    :param limit: Number of hot posts to fetch per subreddit (None = unlimited).
-    """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     reddit = init_reddit()
-
     for sub_name in sub_list:
         results = []
         sub_path = os.path.join(output_dir, f"{sub_name}.json")
+
         try:
             print(f"\nScraping subreddit: {sub_name}")
             for submission in reddit.subreddit(sub_name).hot(limit=limit):
@@ -96,21 +88,24 @@ def scrape_subreddits_list(sub_list, output_dir="reddit_data", limit=None):
                     else:
                         # If no preview, fall back to selftext + top-level URL
                         urls_in_text = [
-                            modify_reddit_url(u) for u in extract_urls(submission.selftext)
+                            modify_reddit_url(u)
+                            for u in extract_urls(submission.selftext)
                         ]
                         urls_in_text.append(modify_reddit_url(submission.url))
 
                     results.append({
                         "submission_url": f"https://www.reddit.com/{submission.permalink}",
                         "selftext": submission.selftext,
-                        "urls_in_text": urls_in_text
+                        "urls_in_text": urls_in_text,
+                        # Store the subreddit name here:
+                        "subreddit": sub_name
                     })
 
                 except prawcore.exceptions.TooManyRequests:
-                    print("    Rate limit exceeded, sleeping 60s...")
+                    print("  Rate limit exceeded, sleeping 60s...")
                     time.sleep(60)
                 except Exception as e:
-                    print(f"    Error processing post: {submission.title} | {e}")
+                    print(f"  Error processing post: {submission.title} | {e}")
 
         except prawcore.exceptions.NotFound:
             print(f"  Subreddit not found: {sub_name}")
@@ -155,28 +150,21 @@ def get_file_type(url):
 
 
 def ingest_file(json_path):
-    """
-    Process a single .json file from the scraping step,
-    returning a list of items structured as:
-
-    [
-      {
-        "submission_url": "...",
-        "media_url": "...",
-        "file_type": "image"/"gif"/"video"/"unknown",
-      },
-      ...
-    ]
-    """
     items = []
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
+
         for post in data:
             submission_url = post["submission_url"]
+            # Safely grab the subreddit name; default to "unknown" if missing
+            sub_name = post.get("subreddit", "unknown")
+
             for media_url in post["urls_in_text"]:
                 file_type = get_file_type(media_url)
+
                 items.append({
                     "submission_url": submission_url,
+                    "subreddit": sub_name,  # Add it here
                     "media_url": media_url,
                     "file_type": file_type
                 })
@@ -218,29 +206,15 @@ def ingest_directory(scrape_dir="reddit_data", completed_list_file="complete.txt
 # 3) Download Media
 # ------------------------------------------------------------------------------
 
-def download_media(items,
-                   skip_images=False,
-                   skip_gifs=False,
-                   skip_videos=False,
-                   convert_gifs=False):
-    """
-    Download media files from the list of items.
-    • If item['file_type'] == 'image', download into data/images
-    • If item['file_type'] == 'gif', download into data/gifs, optionally convert to MP4 → data/videos
-    • If item['file_type'] == 'video', download into data/videos
-
-    :param items: list of dicts from ingest_directory().
-    :param skip_images, skip_gifs, skip_videos: bool flags to skip certain media types.
-    :param convert_gifs: bool to indicate if .gifs should be converted to MP4 after download.
-    """
-
-    # Ensure directories exist
-    for d in (IMAGES_DIR, VIDEOS_DIR, GIFS_DIR):
-        os.makedirs(d, exist_ok=True)
+def download_media(items, skip_images=False, skip_gifs=False, skip_videos=False, convert_gifs=False):
+    os.makedirs(IMAGES_DIR, exist_ok=True)
+    os.makedirs(VIDEOS_DIR, exist_ok=True)
+    os.makedirs(GIFS_DIR, exist_ok=True)
 
     for i, item in enumerate(items):
         media_url = item["media_url"]
         ftype = item["file_type"]
+        subreddit_name = item.get("subreddit", "unknown")
 
         # Check skip flags
         if ftype == "image" and skip_images:
@@ -249,12 +223,10 @@ def download_media(items,
             continue
         if ftype == "video" and skip_videos:
             continue
-
         if ftype not in ["image", "gif", "video"]:
-            # Unknown or not recognized extension
+            # Unknown or unrecognized extension
             continue
 
-        # Attempt to download
         try:
             resp = requests.get(media_url, timeout=10)
             resp.raise_for_status()
@@ -262,12 +234,16 @@ def download_media(items,
             print(f"Failed to download {media_url}: {e}")
             continue
 
-        # Build local filename
         parsed = urlparse(media_url)
         base_name = os.path.basename(parsed.path)
+
         # If there's no valid extension, create one
         if not base_name or "." not in base_name:
             base_name = str(uuid.uuid4()) + get_file_extension(media_url)
+
+        # Prepend: reddit_{subreddit_name}_ to the filename
+        prefix = f"reddit_{subreddit_name}_"
+        base_name = prefix + base_name
 
         # Decide output folder
         if ftype == "image":
@@ -279,12 +255,12 @@ def download_media(items,
 
         output_path = os.path.join(out_folder, base_name)
 
-        # Write the file
         with open(output_path, "wb") as out_f:
             out_f.write(resp.content)
+
         print(f"Downloaded ({ftype.upper()}): {media_url} -> {output_path}")
 
-        # Optionally convert .gif -> .mp4
+        # Optionally convert .gif → .mp4
         if ftype == "gif" and convert_gifs:
             mp4_name = os.path.splitext(base_name)[0] + ".mp4"
             mp4_path = os.path.join(VIDEOS_DIR, mp4_name)
