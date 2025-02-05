@@ -37,3 +37,6 @@ models/
 
 # Ignore downloaded Reddit data
 /reddit_data
+
+# Ignore Google Cloud Account Keys
+gen-lang-client-*

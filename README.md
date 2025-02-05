@@ -444,6 +444,77 @@ To caption all media files in the `media` folder at 1 FPS sampling, with a custo
    -  A JSON file (with detailed frame-level data and the composite caption) and  
    -  A text file with the composite caption.
 
+## Captioning Videos with Vertex AI
+
+TripleX now includes a script that can directly process entire video files using Google’s Vertex AI service. Unlike the Gemini-based captioner, which focuses on individual frames or images, this script uploads each video to a Google Cloud Storage (GCS) bucket and then queries Vertex AI to generate a JSON-formatted caption (including timestamps) describing the entire video. 
+
+### Prerequisites
+
+1. A Google Cloud Platform (GCP) project with the following roles granted to the service account you will use:
+   • Service Usage Consumer  
+   • Storage Admin  
+   • Vertex AI Administrator  
+
+2. A GCS bucket where your video files will be uploaded before caption generation.  
+3. A service account JSON key file to authenticate with Google Cloud. Store this key in a secure location and set the environment variable to point to it (for example):  
+   export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your-service-acct-key.json"
+
+4. Dependencies for Vertex AI and the GCS Python client (e.g., google-cloud-storage, vertexai, google-cloud-aiplatform) installed in your environment. Make sure these are in your requirements.txt or installed manually:
+   pip install google-cloud-storage google-cloud-aiplatform
+
+### Usage
+
+To run the Vertex AI captioner, use the following command from the project root (adjusting paths and arguments as needed):
+
+    python captioners/vertex_ai.py \
+        --dir /path/to/videos \
+        --bucket your-gcs-bucket \
+        --project your-gcp-project-id \
+        [--location us-central1] \
+        [--prompt "Custom instructions"] \
+        [--output_dir /path/to/output]
+
+• --dir: Path to the local directory containing your video files.  
+• --bucket: Name of the GCS bucket where videos will be uploaded.  
+• --project: Your GCP project ID.  
+• --location (optional): The region for Vertex AI (defaults to us-central1).  
+• --prompt (optional): Custom text to refine or alter the captioning behavior.  
+• --output_dir (optional): Directory to which processed files (i.e., the original video, JSON output, and text caption) will be moved upon successful captioning.
+
+When the script runs:  
+1. Each video is uploaded to the specified GCS bucket.  
+2. Vertex AI is called with one of several fallback “Gemini” models. It generates a JSON object with the following fields:  
+   • caption – A single, concise description of the content.  
+   • timestamped_captions – Array of objects with a timestamp (in seconds) and a local “description” at that moment.  
+   • metadata – An object containing optional technical details (e.g., frame rate, resolution).  
+   • confirmation – A statement confirming all depicted individuals are over 21 and have signed consent waivers.  
+3. The JSON output is saved as <video_basename>.json in the script’s working directory (or in --output_dir, if provided).  
+4. A plain-text file <video_basename>.txt containing only the “caption” field is also generated.  
+5. Upon success, the script moves the original video, JSON file, and text file to the specified --output_dir (if used).
+
+### Example
+
+    export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your-service-acct-key.json"
+    python captioners/vertex_ai.py \
+        --dir data/videos \
+        --bucket my-video-bucket \
+        --project my-gcp-project \
+        --location us-central1 \
+        --prompt "Emphasize activities and background objects, but remain concise." \
+        --output_dir data/captioned_videos
+
+After running, you’ll find three files per video in data/captioned_videos:  
+1. The original video (moved from data/videos).  
+2. A .json file with the extended JSON-formatted description.  
+3. A .txt file with the concise single-sentence caption.
+
+### Notes and Considerations
+
+• Adult Content: If you are processing adult or explicit material, ensure your GCP project and usage of Vertex AI aligns with Google’s content policies and any applicable legal requirements.  
+• Privacy and Rights: Confirm you have rights and permission to upload and process the video files on Google’s servers.  
+• Costs: Vertex AI usage may incur charges. Consult Google’s documentation for pricing details.  
+• Troubleshooting: If you encounter “Resource exhausted” or rate-limit errors, the script will automatically try fallback models. If all attempts fail, an error is printed.
+
 ## Contributing
 
 Contributions are welcome! You can contribute to this project in the following ways:

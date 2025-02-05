@@ -292,7 +292,7 @@ def main():
     genai.configure(api_key=api_key)
 
     directory = args.dir
-    video_exts = {".mp4", ".mov", ".avi", ".mpeg", ".wmv", ".flv", ".mpg", ".webm", ".3gpp"}
+    video_exts = {".mp4", ".mov", ".m4v", ".avi", ".mpeg", ".wmv", ".flv", ".mpg", ".webm", ".3gpp"}
     image_exts = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
 
     for filename in os.listdir(directory):
