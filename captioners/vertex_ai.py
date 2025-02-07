@@ -124,7 +124,7 @@ def caption_video(gcs_uri, prompt_text, fallback_models):
             raise Exception("All fallback models failed. Last error: " + str(last_exception))
 
 
-def process_video(file_path, bucket, prompt_text, output_dir):
+def process_video(file_path, bucket, prompt_text, output_dir, condition_text):
     """
     Uploads the video file and obtains caption outputs.
     Writes a .json and .txt file with the same basename.
@@ -136,34 +136,45 @@ def process_video(file_path, bucket, prompt_text, output_dir):
     gcs_uri = upload_to_gcs(file_path, bucket)
     print(f"Requesting caption for {file_path} …")
 
-    rigid_json_prompt = """SYSTEM:
-      You are only allowed to output valid JSON with exactly these four keys:
-        1) "caption" (string)
-        2) "timestamped_captions" (array of { "timestamp": number, "description": string })
-        3) "metadata" (object with any technical details)
-        4) "confirmation" (string)
-      No extra keys. No text before or after. No markdown. No bullet points. No disclaimers outside the JSON.
+    consistency_note = """
+    IMPORTANT: The first time the specified condition is met MUST be stored
+    in the 'metadata' object under the key "first_condition_timestamp" (an integer).
+    Use "first_condition_timestamp" exactly. No synonyms, no variations.
+    """
 
-      Example (do not include trailing text):
-      {
-        "caption": "A single sentence describing the scene.",
-        "timestamped_captions": [
-          { "timestamp": 0, "description": "..." }
-        ],
-        "metadata": {
-          "filename": "example.mp4",
-          "resolution": "1920x1080",
-          "frame_rate": 30
-        },
-        "confirmation": "All individuals are over 21 and have signed consent waivers."
-      }
+    rigid_json_prompt = f"""SYSTEM: You are only allowed to output valid JSON with exactly these four keys:
+    1) "caption" (string)
+    2) "timestamped_captions" (array of objects with "timestamp" (number) and "description" (string))
+    3) "metadata" (object)
+    4) "confirmation" (string)
 
-      Put all other commentary or descriptions inside the 'caption' field if necessary.
-      Now return ONLY the JSON object.
-      """
+    No extra keys. No text before or after. No markdown. No bullet points. No disclaimers outside the JSON.
+
+    Example (do not include trailing text):
+    {{
+      "caption": "A single sentence describing the scene.",
+      "timestamped_captions": [
+        {{
+          "timestamp": 0,
+          "description": "..."
+        }}
+      ],
+      "metadata": {{
+        "filename": "example.mp4",
+        "resolution": "1920x1080",
+        "frame_rate": 30,
+        "first_condition_timestamp": 0
+      }},
+      "confirmation": "All individuals are over 21 and have signed consent waivers."
+    }}
+
+    Put all other commentary inside the 'caption' field if necessary.
+    Now return ONLY the JSON object.
+
+    {consistency_note}
+    """
 
     combined_prompt = f"{prompt_text}\n\n{rigid_json_prompt}"
-
     raw_response = caption_video(gcs_uri, combined_prompt, FALLBACK_MODELS)
     print("Raw API response:")
     print(raw_response)
@@ -254,6 +265,11 @@ def main():
                         help="Captioning prompt with output instructions")
     parser.add_argument("--output_dir", default="",
                         help="Directory to move the video and caption outputs after processing")
+    parser.add_argument(
+        "--condition",
+        default="",
+        help="Condition that the model should look for, e.g. 'the first time breasts are visible'"
+    )
 
     args = parser.parse_args()
 
@@ -273,7 +289,7 @@ def main():
         if ext in video_exts:
             print(f"\nProcessing video file: {filename}")
             try:
-                process_video(file_path, args.bucket, args.prompt, args.output_dir)
+                process_video(file_path, args.bucket, args.prompt, args.output_dir, args.condition)
             except Exception as proc_err:
                 print(f"Error processing {filename}: {proc_err}")
         else:

@@ -14,14 +14,21 @@ load_dotenv()
 
 # --- FALLBACK MODEL LISTS ---
 INDIVIDUAL_FALLBACK_MODELS = [
+    "gemini-2.0-flash-thinking-exp-01-21",
     "gemini-2.0-flash-exp",
-    "gemini-1.5-flash-latest"
+    "gemini-2.0-flash",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash",
+    "gemini-2.0-pro-exp-02-05"
 ]
 
 COMPOSITE_FALLBACK_MODELS = [
-    "gemini-1.5-pro-latest",
+    "gemini-2.0-pro-exp-02-05",
+    "gemini-2.0-flash-thinking-exp-01-21",
     "gemini-2.0-flash-exp",
-    "gemini-1.5-flash-latest"
+    "gemini-2.0-flash",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash"
 ]
 
 
@@ -29,7 +36,7 @@ def rewrite_composite_caption(composite_caption):
     # Build a rewriting prompt that asks the model to reframe the caption.
     # IMPORTANT: The rewritten caption must keep all the scene details but avoid redundant phrases.
     rewriting_prompt = (
-            f"""
+        f"""
             You are a language rewriter. Below is a composite caption generated from multiple video frames. Your goal is to merge any repeated sentences or phrases into a single mention while preserving every specific detail. Do not remove or alter information about nudity, positions, or body parts. Keep the same plain, everyday language used in the composite caption. Do not introduce new information or alter the tone.
 
             Detailed Requirements:
@@ -247,23 +254,62 @@ def process_video(file_path, fps, individual_model_list, composite_model_list, c
             print(f"Error moving files to {output_dir}: {e}")
 
 
-def process_image(file_path, model_list, custom_prompt="", output_dir=None):
+def process_image(file_path, individual_model_list, composite_model_list, custom_prompt="", output_dir=None):
     print(f"Processing image file: {file_path}")
     try:
         with open(file_path, "rb") as f:
             image_bytes = f.read()
-        caption, _ = get_frame_caption(image_bytes, 0, model_list, custom_prompt)
-        print(f"Caption for image {file_path}:\n{json.dumps(caption, indent=2)}")
+
+        # Get the caption for the image
+        caption, image_input = get_frame_caption(image_bytes, 0, individual_model_list, custom_prompt)
+        print(f"Initial caption for image {file_path}:\n{caption}\n")
+
+        # Create a frame_data structure as done for videos (even though there is only one frame)
+        frame_data = {
+            "timestamp": 0,
+            "caption": caption,
+            "image_input": image_input
+        }
+        frames_data = [frame_data]
+
+        # Get the composite caption based on a single frame
+        composite = get_composite_caption(frames_data, composite_model_list, custom_prompt)
+        print("Composite caption for image:")
+        print(composite)
+
+        # Optionally rewrite (refine) the composite caption to remove markdown wrappers
+        if composite.strip():
+            try:
+                final_caption = rewrite_composite_caption(composite)
+                print("Final rewritten caption:")
+                print(final_caption)
+                composite = final_caption
+            except Exception as e:
+                print(f"Error rewriting composite caption: {e}")
+
+        # Save the JSON structure and plain text caption
         base_name = os.path.splitext(file_path)[0]
-        output_filename = base_name + "_caption.json"
-        with open(output_filename, "w") as out_f:
-            out_f.write(caption)
-        print(f"Caption saved to {output_filename}")
+        output_json_filename = base_name + ".json"
+        output_txt_filename = base_name + ".txt"
+
+        json_data = {"frames": frames_data, "composite_caption": composite}
+        with open(output_json_filename, "w") as out_f:
+            json.dump(json_data, out_f, indent=2)
+        print(f"Caption JSON saved to {output_json_filename}")
+
+        with open(output_txt_filename, "w") as out_f:
+            out_f.write(composite)
+        print(f"Caption text saved to {output_txt_filename}")
+
+        # Optionally, move outputs to the output directory.
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
+            import shutil
             shutil.move(file_path, os.path.join(output_dir, os.path.basename(file_path)))
-            shutil.move(output_filename, os.path.join(output_dir, os.path.basename(output_filename)))
-            print(f"Moved image file and caption to {output_dir}")
+            shutil.move(output_json_filename, os.path.join(output_dir, os.path.basename(output_json_filename)))
+            shutil.move(output_txt_filename, os.path.join(output_dir, os.path.basename(output_txt_filename)))
+            print(f"Moved image file and captions to {output_dir}")
+
     except Exception as e:
         print(f"Error processing image {file_path}: {e}")
 
@@ -309,6 +355,7 @@ def main():
                           output_dir=args.output_dir)
         elif ext in image_exts:
             process_image(file_path, INDIVIDUAL_FALLBACK_MODELS,
+                          COMPOSITE_FALLBACK_MODELS,
                           custom_prompt=args.custom_prompt,
                           output_dir=args.output_dir)
         else:
