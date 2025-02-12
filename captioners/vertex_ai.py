@@ -24,7 +24,9 @@ Usage:
 import argparse
 import json
 import os
+import shlex
 import shutil
+import subprocess
 
 import vertexai
 from google.cloud import storage
@@ -37,6 +39,8 @@ from vertexai.generative_models import (
     HarmBlockThreshold
 )
 
+os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
+
 # Define fallback models – order by priority.
 FALLBACK_MODELS = [
     "gemini-2.0-pro-exp-02-05",
@@ -47,6 +51,34 @@ FALLBACK_MODELS = [
     "gemini-1.5-pro",
     "gemini-1.5-flash"
 ]
+
+
+def validate_local_video(file_path):
+    """
+    Check if the file is non-empty and optionally verify its metadata.
+    Returns True if valid; otherwise False.
+    """
+    # Check if file is non-empty
+    if not os.path.isfile(file_path):
+        print(f"ERROR: File {file_path} does not exist.")
+        return False
+
+    if os.path.getsize(file_path) == 0:
+        print(f"ERROR: File {file_path} is zero bytes.")
+        return False
+
+    # Optional ffprobe check to confirm media info can be read:
+    try:
+        # Build ffprobe command to return format/streams without writing to stdout
+        cmd = f'ffprobe -v error -show_format -show_streams "{file_path}"'
+        subprocess.run(shlex.split(cmd), check=True, capture_output=True)
+        # If this succeeds, the file is probably playable
+    except subprocess.CalledProcessError as ffprobe_err:
+        # If ffprobe cannot parse it, the file is likely invalid/corrupted
+        print(f"ERROR: ffprobe could not parse {file_path}.\nDetails: {ffprobe_err.stderr}")
+        return False
+
+    return True
 
 
 def upload_to_gcs(local_file, bucket_name, destination_blob_name=None):
@@ -125,14 +157,15 @@ def caption_video(gcs_uri, prompt_text, fallback_models):
 
 
 def process_video(file_path, bucket, prompt_text, output_dir, condition_text):
-    """
-    Uploads the video file and obtains caption outputs.
-    Writes a .json and .txt file with the same basename.
-    If successful, moves the video and output files to the output directory.
-    """
-    base_name = os.path.splitext(os.path.basename(file_path))[0]
+    """Upload the video file and obtain caption outputs, etc."""
+    # ------------------- NEW VALIDATION STEP HERE ------------------- #
+    if not validate_local_video(file_path):
+        print(f"Skipping invalid video: {file_path}")
+        return  # or raise an Exception if you'd rather stop entirely
+    # ----------------------------------------------------------------- #
 
-    # Upload video file.
+    base_name = os.path.splitext(os.path.basename(file_path))[0]
+    # Proceed with upload now that the file is confirmed valid.
     gcs_uri = upload_to_gcs(file_path, bucket)
     print(f"Requesting caption for {file_path} …")
 
@@ -298,3 +331,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+

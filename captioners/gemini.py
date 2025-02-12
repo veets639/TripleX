@@ -1,6 +1,6 @@
 import argparse
 import base64
-import concurrent.futures  # NEW: for parallel processing
+import concurrent.futures
 import json
 import os
 import shutil
@@ -8,6 +8,8 @@ import sys
 
 import cv2
 import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -30,6 +32,15 @@ COMPOSITE_FALLBACK_MODELS = [
     "gemini-1.5-pro",
     "gemini-1.5-flash"
 ]
+
+# Define safety settings using the imported enums
+safety_settings = {
+    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE
+}
 
 
 def rewrite_composite_caption(composite_caption):
@@ -65,7 +76,11 @@ def call_gemini(inputs, generation_config, model_list):
         try:
             print(f"Calling Gemini model {model_name} …")
             model = genai.GenerativeModel(model_name=model_name)
-            result = model.generate_content(inputs, generation_config=generation_config)
+            result = model.generate_content(
+                inputs,
+                generation_config=generation_config,
+                safety_settings=safety_settings
+            )
             if result and result.text:
                 return result.text
         except Exception as e:
@@ -314,6 +329,19 @@ def process_image(file_path, individual_model_list, composite_model_list, custom
         print(f"Error processing image {file_path}: {e}")
 
 
+def process_file(file_path, args, video_exts, image_exts):
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext in video_exts:
+        process_video(file_path, args.fps, INDIVIDUAL_FALLBACK_MODELS,
+                      COMPOSITE_FALLBACK_MODELS, custom_prompt=args.custom_prompt,
+                      max_frames=args.max_frames, output_dir=args.output_dir)
+    elif ext in image_exts:
+        process_image(file_path, INDIVIDUAL_FALLBACK_MODELS, COMPOSITE_FALLBACK_MODELS,
+                      custom_prompt=args.custom_prompt, output_dir=args.output_dir)
+    else:
+        print(f"Skipping unsupported file type: {file_path}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Caption all videos/images in a directory using the Gemini API with fallback. "
@@ -341,25 +369,22 @@ def main():
     video_exts = {".mp4", ".mov", ".m4v", ".avi", ".mpeg", ".wmv", ".flv", ".mpg", ".webm", ".3gpp"}
     image_exts = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
 
+    # Gather all file paths to process
+    file_paths = []
     for filename in os.listdir(directory):
         file_path = os.path.join(directory, filename)
-        if not os.path.isfile(file_path):
-            continue
-        ext = os.path.splitext(filename)[1].lower()
-        if ext in video_exts:
-            process_video(file_path, args.fps,
-                          INDIVIDUAL_FALLBACK_MODELS,
-                          COMPOSITE_FALLBACK_MODELS,
-                          custom_prompt=args.custom_prompt,
-                          max_frames=args.max_frames,
-                          output_dir=args.output_dir)
-        elif ext in image_exts:
-            process_image(file_path, INDIVIDUAL_FALLBACK_MODELS,
-                          COMPOSITE_FALLBACK_MODELS,
-                          custom_prompt=args.custom_prompt,
-                          output_dir=args.output_dir)
-        else:
-            print(f"Skipping unsupported file type: {filename}")
+        if os.path.isfile(file_path):
+            file_paths.append(file_path)
+
+    # Use a thread pool to process files concurrently
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(process_file, fp, args, video_exts, image_exts) for fp in file_paths]
+        # Optionally wait for all jobs to complete and handle exceptions
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                print(f"Error processing a file: {e}")
 
 
 if __name__ == "__main__":
