@@ -17,3 +17,6 @@ google-generativeai
 vertexai
 google-cloud-storage
 google-cloud-storage
+transformers
+huggingface_hub
+Pillow
