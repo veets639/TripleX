@@ -624,7 +624,7 @@ TripleX also includes a script for generating detailed captions for images using
 1. Install the required dependencies in your Python environment:
 
    ```bash
-   pip install torch transformers pillow huggingface_hub
+   pip install -r requiredments.txt
    ```
 
 2. Ensure your system has a compatible GPU to run the **JoyCaption2** model efficiently. If no GPU is available, the model will attempt to run on CPU (but performance may be slower).
