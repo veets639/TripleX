@@ -7,24 +7,44 @@ Discord: https://discord.gg/mjnStFuCYh
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [Directory Structure](#directory-structure)
-- [Installation](#installation)
-  - [Environment Variables](#environment-variables)
-    - [Setting Up Reddit Credentials](#setting-up-reddit-credentials)
-- [Usage](#usage)
-  - [Downloading Videos](#downloading-videos)
-  - [Downloading from Reddit](#downloading-from-reddit)
-  - [Splitting Videos by Scene](#splitting-videos-by-scene)
-  - [Trimming Frames from Videos](#trimming-frames-from-videos)
-  - [Analyzing Frames](#analyzing-frames)
-  - [Creating Datasets for Model Training](#creating-datasets-for-model-training)
-- [Contributing](#contributing)
-- [License](#license)
-- [Disclaimer](#disclaimer)
-- [Additional Notes](#additional-notes)
-- [Contact](#contact)
+- [TripleX by NSFW API](#triplex-by-nsfw-api)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Features](#features)
+  - [Directory Structure](#directory-structure)
+  - [Installation](#installation)
+    - [Environment Variables](#environment-variables)
+      - [Setting Up Reddit Credentials](#setting-up-reddit-credentials)
+  - [Usage](#usage)
+    - [Downloading Videos](#downloading-videos)
+      - [xHamster Downloader](#xhamster-downloader)
+      - [4chan Downloader](#4chan-downloader)
+    - [Downloading from Reddit](#downloading-from-reddit)
+    - [Splitting Videos by Scene](#splitting-videos-by-scene)
+    - [Trimming Frames from Videos](#trimming-frames-from-videos)
+    - [Analyzing Frames](#analyzing-frames)
+    - [Creating Datasets for Model Training](#creating-datasets-for-model-training)
+  - [Captioning with Gemini API](#captioning-with-gemini-api)
+    - [Key Features](#key-features)
+    - [Installation and Environment Setup](#installation-and-environment-setup)
+    - [Usage](#usage-1)
+      - [Example](#example)
+    - [How It Works](#how-it-works)
+  - [Captioning Videos with Vertex AI](#captioning-videos-with-vertex-ai)
+    - [Prerequisites](#prerequisites)
+    - [Usage](#usage-2)
+    - [Example](#example-1)
+    - [Notes and Considerations](#notes-and-considerations)
+  - [Contributing](#contributing)
+    - [Adding Downloaders for Other Sites](#adding-downloaders-for-other-sites)
+    - [Adding New Utilities](#adding-new-utilities)
+    - [General Contribution Steps](#general-contribution-steps)
+  - [License](#license)
+  - [Disclaimer](#disclaimer)
+  - [Additional Notes](#additional-notes)
+    - [Handling Large Files](#handling-large-files)
+    - [Contributing with Large Files](#contributing-with-large-files)
+  - [Contact](#contact)
 
 ## Overview
 
@@ -158,6 +178,10 @@ The user agent can be any descriptive string, but Reddit recommends using the fo
 
 ### Downloading Videos
 
+The project provides multiple downloaders for different platforms:
+
+#### xHamster Downloader
+
 The `download_xhamster.py` script allows you to download videos from xHamster.
 
 **Note**: Ensure you comply with all legal requirements and terms of service when downloading content.
@@ -182,6 +206,62 @@ python downloaders/download_xhamster.py <video_url>
 
    - The script automatically saves the downloaded video in the `data/videos` directory.
    - No additional input is required after providing the URL.
+
+#### 4chan Downloader
+
+The `chan_downloader.py` script allows you to download media (images, GIFs, and videos) from 4chan threads or entire boards.
+
+**Example Usage**:
+
+```bash
+# Download from a specific thread
+python downloaders/chan_downloader.py w --thread 12345678
+
+# Download from an entire board
+python downloaders/chan_downloader.py w --limit 100
+
+# Skip previously downloaded threads
+python downloaders/chan_downloader.py wg --skip-existing
+```
+
+**Arguments**:
+
+- `board`: (required) The board name (e.g., 'w', 'wg', etc.)
+- `--thread`: (optional) Specific thread ID to download from
+- `--limit`: (optional) Maximum number of threads to download from board
+- `--skip-existing`: (optional) Skip threads that have been previously downloaded
+- `--log-level`: (optional) Set logging level (debug, info, warning, error)
+
+**Features**:
+
+- Downloads all media types (images, GIFs, videos)
+- Organizes content by board and thread
+- Tracks downloaded threads to avoid duplicates
+- Implements rate limiting to respect server rules
+- Provides detailed logging and download statistics
+
+**Instructions**:
+
+1. **Run the Script**:
+   ```bash
+   python downloaders/chan_downloader.py <board> [options]
+   ```
+
+2. **Media Organization**:
+   - Images are saved to `data/chan/images/<board>/<thread_id>`
+   - Videos are saved to `data/chan/videos/<board>/<thread_id>`
+   - GIFs are saved to `data/chan/gifs/<board>/<thread_id>`
+
+3. **Download Tracking**:
+   - Downloaded threads are tracked in `data/chan/downloaded_threads.json`
+   - Use `--skip-existing` to skip previously downloaded threads
+
+**Notes**:
+
+- The script respects 4chan's rate limits with automatic backoff
+- Thread directories include thread titles when available
+- Download statistics are displayed after completion
+- Detailed logs are saved to `chan_downloader.log`
 
 ### Downloading from Reddit
 
