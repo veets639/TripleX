@@ -35,6 +35,11 @@ Discord: https://discord.gg/mjnStFuCYh
     - [Usage](#usage-2)
     - [Example](#example-1)
     - [Notes and Considerations](#notes-and-considerations)
+  - [Captioning Images with JoyCaption2](#captioning-images-with-joycaption2)
+    - [Prerequisites](#prerequisites)
+    - [Usage](#usage)
+    - [Example](#example)
+    - [Notes and Considerations](#notes-and-considerations)
   - [Contributing](#contributing)
     - [Adding Downloaders for Other Sites](#adding-downloaders-for-other-sites)
     - [Adding New Utilities](#adding-new-utilities)
@@ -52,11 +57,11 @@ Discord: https://discord.gg/mjnStFuCYh
 
 ## Features
 
-- **Video Downloaders**: Currently supports downloading videos from xHamster and Reddit.  
-- **Scene Detection**: Uses PySceneDetect to split videos into individual scenes.  
-- **Frame Trimming**: Trims a specified number of frames from the beginning of videos.  
-- **Frame Analysis**: Analyzes frames extracted from videos using machine learning models.  
-- **Dataset Creation**: Facilitates the creation of datasets for model training.  
+- **Video Downloaders**: Currently supports downloading videos from xHamster and Reddit.
+- **Scene Detection**: Uses PySceneDetect to split videos into individual scenes.
+- **Frame Trimming**: Trims a specified number of frames from the beginning of videos.
+- **Frame Analysis**: Analyzes frames extracted from videos using machine learning models.
+- **Dataset Creation**: Facilitates the creation of datasets for model training.
 - **Modular Utilities**: Easily add new utilities or downloaders to extend functionality.
 
 ## Directory Structure
@@ -65,9 +70,10 @@ Discord: https://discord.gg/mjnStFuCYh
 .
 ├── LICENSE
 ├── README.md
-├── captioners/  
+├── captioners/
 │   ├── gemini.py
-│   └── open_ai.py        <--- Former get_captions.py has been moved here  
+│   ├── joycaption2.py
+│   └── open_ai.py        <--- Former get_captions.py has been moved here
 ├── data
 │         ├── clips
 │         ├── images
@@ -108,26 +114,30 @@ Discord: https://discord.gg/mjnStFuCYh
 ## Installation
 
 1. Clone the Repository:
+
    - `git clone https://github.com/NSFW-API/TripleX.git`
    - `cd TripleX`
 
 2. Create a Virtual Environment:
-   - `python3 -m venv venv`  
-   - `source venv/bin/activate`  # On macOS/Linux  
-   (On Windows: `venv\Scripts\activate`)
+
+   - `python3 -m venv venv`
+   - `source venv/bin/activate` # On macOS/Linux  
+     (On Windows: `venv\Scripts\activate`)
 
 3. Install Dependencies:
+
    - `pip install -r requirements.txt`
 
 4. Install FFmpeg:
-   - macOS:     `brew install ffmpeg`
-   - Ubuntu:    `sudo apt-get install ffmpeg`  
-   - Windows:   Download from https://ffmpeg.org, add to PATH
+
+   - macOS: `brew install ffmpeg`
+   - Ubuntu: `sudo apt-get install ffmpeg`
+   - Windows: Download from https://ffmpeg.org, add to PATH
 
 5. (Optional) Install TensorFlow and Additional Dependencies for further processing:
    - `pip install tensorflow opencv-python numpy`
 
-### Environment Variables  
+### Environment Variables
 
 If you plan to use the Reddit downloader, you’ll need Reddit API credentials. We recommend storing them in a .env file. We’ve provided an example named .env_example at the repository root:
 
@@ -151,18 +161,19 @@ Once .env is set up, scripts like reddit_downloader.py will load these environme
 
 To obtain the necessary client ID and secret for Reddit:
 
-1. Create or log into your Reddit account.  
+1. Create or log into your Reddit account.
 2. Open your apps preferences page:  
-   https://www.reddit.com/prefs/apps/  
-3. Click “Create another app…” at the bottom of the page.  
-4. Provide an “App name” → pick any descriptive name, e.g. “TripleXScraper.”  
-5. Under “App type,” select “script.”  
-6. Enter a short description. The “About URL” and “Redirect URL” fields can be any URL (e.g. “http://localhost/”).  
-7. Click “Create app.”  
-8. Once created, you’ll see something like:  
-   ```name: TripleXScraper  
+   https://www.reddit.com/prefs/apps/
+3. Click “Create another app…” at the bottom of the page.
+4. Provide an “App name” → pick any descriptive name, e.g. “TripleXScraper.”
+5. Under “App type,” select “script.”
+6. Enter a short description. The “About URL” and “Redirect URL” fields can be any URL (e.g. “http://localhost/”).
+7. Click “Create app.”
+8. Once created, you’ll see something like:
+
+   ```name: TripleXScraper
    personal use script: ...
-   secret: ...  
+   secret: ...
    redirect uri: http://localhost/
    ```
 
@@ -172,7 +183,7 @@ To obtain the necessary client ID and secret for Reddit:
    REDDIT_CLIENT_SECRET=abc123def4567890abcdef12345  
    REDDIT_USER_AGENT=python:TripleXScraper:v1.0 (by /u/YourUsername)
 
-The user agent can be any descriptive string, but Reddit recommends using the format “python:app_name:vX.Y (by /u/username).”  
+The user agent can be any descriptive string, but Reddit recommends using the format “python:app_name:vX.Y (by /u/username).”
 
 ## Usage
 
@@ -243,11 +254,13 @@ python downloaders/chan_downloader.py wg --skip-existing
 **Instructions**:
 
 1. **Run the Script**:
+
    ```bash
    python downloaders/chan_downloader.py <board> [options]
    ```
 
 2. **Media Organization**:
+
    - Images are saved to `data/chan/images/<board>/<thread_id>`
    - Videos are saved to `data/chan/videos/<board>/<thread_id>`
    - GIFs are saved to `data/chan/gifs/<board>/<thread_id>`
@@ -268,7 +281,7 @@ python downloaders/chan_downloader.py wg --skip-existing
 You can download images, GIFs, or videos from any public subreddit via the reddit_downloader.py script:
 
 1. Locate reddit_downloader.py in the “downloaders” directory.
-2. Ensure you have set up your Reddit API credentials in the script or via environment variables if you need them.  
+2. Ensure you have set up your Reddit API credentials in the script or via environment variables if you need them.
 3. Ensure .env is configured
 4. Run the script from the root of the repository (or wherever you keep your code), specifying which subreddits to scrape and any desired flags.
 
@@ -284,30 +297,30 @@ For example:
 python downloaders/reddit_downloader.py TittyDrop --limit 100 --convert-gifs
 ```
 
-- r/TittyDrop is the subreddit you want to scrape.  
-- `--limit 100` means get up to 100 “hot” posts.  
+- r/TittyDrop is the subreddit you want to scrape.
+- `--limit 100` means get up to 100 “hot” posts.
 - `--convert-gifs` automatically converts downloaded GIFs into MP4s, stored in data/videos.
 
 Below are the main flags you can use:
 
-- `--limit N`           : Number of posts to scrape per subreddit (default=10).  
-- `--skip-images`       : Skip downloading standard image files (.jpg, .png, etc.).  
-- `--skip-gifs`         : Skip downloading .gif files.  
-- `--skip-videos`       : Skip downloading video files (.mp4, .webm, etc.).  
-- `--convert-gifs`      : Convert any downloaded .gif to .mp4 (saved in data/videos).  
-- `--skip-ingest`       : Skip creating new JSON (use existing JSON from previous runs).  
-- `--skip-download`     : Skip downloading (just scrape or ingest information).  
+- `--limit N` : Number of posts to scrape per subreddit (default=10).
+- `--skip-images` : Skip downloading standard image files (.jpg, .png, etc.).
+- `--skip-gifs` : Skip downloading .gif files.
+- `--skip-videos` : Skip downloading video files (.mp4, .webm, etc.).
+- `--convert-gifs` : Convert any downloaded .gif to .mp4 (saved in data/videos).
+- `--skip-ingest` : Skip creating new JSON (use existing JSON from previous runs).
+- `--skip-download` : Skip downloading (just scrape or ingest information).
 
 When running without any flags, the script will:
 
-1. Scrape the specified subreddits into JSON files located in reddit_data/.  
-2. Ingest those JSON files, determining which links are images, GIFs, or videos.  
-3. Download each media file into the appropriate directory:  
-   - data/images for static images (jpg, png, etc.)  
-   - data/gifs for raw GIF files  
-   - data/videos for videos (mp4, etc.) and for GIF→MP4 conversions (if --convert-gifs is used).  
+1. Scrape the specified subreddits into JSON files located in reddit_data/.
+2. Ingest those JSON files, determining which links are images, GIFs, or videos.
+3. Download each media file into the appropriate directory:
+   - data/images for static images (jpg, png, etc.)
+   - data/gifs for raw GIF files
+   - data/videos for videos (mp4, etc.) and for GIF→MP4 conversions (if --convert-gifs is used).
 
-After running the script, you can find your media in the data/images or data/videos directories. You can further process them with other TripleX utilities (scene detection, trimming, dataset creation, etc.).  
+After running the script, you can find your media in the data/images or data/videos directories. You can further process them with other TripleX utilities (scene detection, trimming, dataset creation, etc.).
 
 ### Splitting Videos by Scene
 
@@ -348,11 +361,12 @@ The `trim_frame_beginning.py` script trims a specified number of frames from the
 python utils/trim_frame_beginning.py [num_frames]
 ```
 
-- **`[num_frames]`** *(optional)*: The number of frames to trim from the beginning of each video. If not provided, the default is `5`.
+- **`[num_frames]`** _(optional)_: The number of frames to trim from the beginning of each video. If not provided, the default is `5`.
 
 **Instructions**:
 
 - **Run the Script**:
+
   - To trim a specific number of frames:
 
     ```bash
@@ -440,6 +454,7 @@ python utils/analyze_frames.py
 For a detailed guide on how to use this repository to create a dataset and train a Mochi LoRA model using Modal (a GPU app hosting platform), refer to the following article:
 
 **How to Train a Video Model Using TripleX and Mochi LoRA**:
+
 - [GitHub Gist](https://gist.github.com/NSFW-API/5f3fde1b15295cb1c747a8dee1d9d18b)
 - [Civitai](https://civitai.com/articles/9966)
 
@@ -482,9 +497,9 @@ In addition to its video processing utilities, **TripleX** now includes a new ca
 
 ### Installation and Environment Setup
 
-1. Ensure all dependencies are installed (listed in `requirements.txt` – additional packages used by Gemini captioner include `cv2` (OpenCV), `google-generativeai`, and `python-dotenv`).  
+1. Ensure all dependencies are installed (listed in `requirements.txt` – additional packages used by Gemini captioner include `cv2` (OpenCV), `google-generativeai`, and `python-dotenv`).
 2. Set your Gemini API key as an environment variable. You can add the following entry to your `.env` file at the root of the repository:
-  
+
    GEMINI_API_KEY=your_gemini_api_key_here
 
    This key is required to authenticate with the Gemini API. If you are not already using a `.env` file for other credentials, consider creating one and adding it to your `.gitignore`.
@@ -493,49 +508,52 @@ In addition to its video processing utilities, **TripleX** now includes a new ca
 
 Run the captioner from the command line by specifying the directory containing video and/or image files:
 
-  python captioners/gemini.py --dir <path_to_media_directory>
+python captioners/gemini.py --dir <path_to_media_directory>
 
 The script supports additional options:
 
 - --fps
+
   - Specify the frames per second at which to sample video files (default is 1 FPS).
 
-- --max_frames  
+- --max_frames
+
   - (Optional) Limit the total number of video frames processed per video.
 
-- --output_dir  
+- --output_dir
+
   - (Optional) If provided, once captioning succeeds the script moves the source file and the generated caption files (a JSON file with both the individual frame captions and composite caption, as well as a plain text composite caption) into the specified directory.
 
-- --custom_prompt  
+- --custom_prompt
   - (Optional) A custom string with extra instructions to refine the caption detail. This prompt is applied to both the individual frame captioning and the composite caption generation.
 
 #### Example
 
 To caption all media files in the `media` folder at 1 FPS sampling, with a custom prompt and move completed files to `finished_captions`:
 
-  python captioners/gemini.py --dir media --fps 1 --custom_prompt "Include specific observations about background and accessories." --output_dir finished_captions
+python captioners/gemini.py --dir media --fps 1 --custom_prompt "Include specific observations about background and accessories." --output_dir finished_captions
 
 ### How It Works
 
-1. For video files, the script reads the file via OpenCV and extracts frames at the specified interval (adjustable with the `--fps` flag). Each frame is encoded as a JPEG and sent to the Gemini API for caption generation, making use of parallel processing to speed up the workflow.  
-2. For image files, it generates a caption directly for the single image.  
-3. After individual captions are gathered, the tool creates a composite caption that combines the observations from each frame. It then uses a rewriting model to reframe the composite caption as a refined narrative.  
-4. The final outputs are saved in the same directory as the source file (or moved to an output directory if provided) as:  
-   -  A JSON file (with detailed frame-level data and the composite caption) and  
-   -  A text file with the composite caption.
+1. For video files, the script reads the file via OpenCV and extracts frames at the specified interval (adjustable with the `--fps` flag). Each frame is encoded as a JPEG and sent to the Gemini API for caption generation, making use of parallel processing to speed up the workflow.
+2. For image files, it generates a caption directly for the single image.
+3. After individual captions are gathered, the tool creates a composite caption that combines the observations from each frame. It then uses a rewriting model to reframe the composite caption as a refined narrative.
+4. The final outputs are saved in the same directory as the source file (or moved to an output directory if provided) as:
+   - A JSON file (with detailed frame-level data and the composite caption) and
+   - A text file with the composite caption.
 
 ## Captioning Videos with Vertex AI
 
-TripleX now includes a script that can directly process entire video files using Google’s Vertex AI service. Unlike the Gemini-based captioner, which focuses on individual frames or images, this script uploads each video to a Google Cloud Storage (GCS) bucket and then queries Vertex AI to generate a JSON-formatted caption (including timestamps) describing the entire video. 
+TripleX now includes a script that can directly process entire video files using Google’s Vertex AI service. Unlike the Gemini-based captioner, which focuses on individual frames or images, this script uploads each video to a Google Cloud Storage (GCS) bucket and then queries Vertex AI to generate a JSON-formatted caption (including timestamps) describing the entire video.
 
 ### Prerequisites
 
 1. A Google Cloud Platform (GCP) project with the following roles granted to the service account you will use:
    • Service Usage Consumer  
    • Storage Admin  
-   • Vertex AI Administrator  
+   • Vertex AI Administrator
 
-2. A GCS bucket where your video files will be uploaded before caption generation.  
+2. A GCS bucket where your video files will be uploaded before caption generation.
 3. A service account JSON key file to authenticate with Google Cloud. Store this key in a secure location and set the environment variable to point to it (for example):  
    export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your-service-acct-key.json"
 
@@ -561,15 +579,16 @@ To run the Vertex AI captioner, use the following command from the project root 
 • --prompt (optional): Custom text to refine or alter the captioning behavior.  
 • --output_dir (optional): Directory to which processed files (i.e., the original video, JSON output, and text caption) will be moved upon successful captioning.
 
-When the script runs:  
-1. Each video is uploaded to the specified GCS bucket.  
+When the script runs:
+
+1. Each video is uploaded to the specified GCS bucket.
 2. Vertex AI is called with one of several fallback “Gemini” models. It generates a JSON object with the following fields:  
    • caption – A single, concise description of the content.  
    • timestamped_captions – Array of objects with a timestamp (in seconds) and a local “description” at that moment.  
    • metadata – An object containing optional technical details (e.g., frame rate, resolution).  
-   • confirmation – A statement confirming all depicted individuals are over 21 and have signed consent waivers.  
-3. The JSON output is saved as <video_basename>.json in the script’s working directory (or in --output_dir, if provided).  
-4. A plain-text file <video_basename>.txt containing only the “caption” field is also generated.  
+   • confirmation – A statement confirming all depicted individuals are over 21 and have signed consent waivers.
+3. The JSON output is saved as <video_basename>.json in the script’s working directory (or in --output_dir, if provided).
+4. A plain-text file <video_basename>.txt containing only the “caption” field is also generated.
 5. Upon success, the script moves the original video, JSON file, and text file to the specified --output_dir (if used).
 
 ### Example
@@ -583,9 +602,10 @@ When the script runs:
         --prompt "Emphasize activities and background objects, but remain concise." \
         --output_dir data/captioned_videos
 
-After running, you’ll find three files per video in data/captioned_videos:  
-1. The original video (moved from data/videos).  
-2. A .json file with the extended JSON-formatted description.  
+After running, you’ll find three files per video in data/captioned_videos:
+
+1. The original video (moved from data/videos).
+2. A .json file with the extended JSON-formatted description.
 3. A .txt file with the concise single-sentence caption.
 
 ### Notes and Considerations
@@ -594,6 +614,72 @@ After running, you’ll find three files per video in data/captioned_videos:
 • Privacy and Rights: Confirm you have rights and permission to upload and process the video files on Google’s servers.  
 • Costs: Vertex AI usage may incur charges. Consult Google’s documentation for pricing details.  
 • Troubleshooting: If you encounter “Resource exhausted” or rate-limit errors, the script will automatically try fallback models. If all attempts fail, an error is printed.
+
+## Captioning Images with JoyCaption2
+
+TripleX also includes a script for generating detailed captions for images using the **JoyCaption2** model, which is based on **LLaVA** and **Llama 3.1**. Unlike video-based captioning tools, this script processes individual images or entire directories of images and generates a **long, formal descriptive caption** for each image. The captions are saved as `.txt` files in the same directory as the images.
+
+### Prerequisites
+
+1. Install the required dependencies in your Python environment:
+
+   ```bash
+   pip install -r requiredments.txt
+   ```
+
+2. Ensure your system has a compatible GPU to run the **JoyCaption2** model efficiently. If no GPU is available, the model will attempt to run on CPU (but performance may be slower).
+
+3. The script will **automatically download** the JoyCaption2 model (`fancyfeast/llama-joycaption-alpha-two-hf-llava`) if it is not already available.
+
+### Usage
+
+To run the JoyCaption2 image captioner, use the following command from the project root:
+
+```bash
+python utils/describe-image.py <image_path_or_directory>
+```
+
+- `<image_path_or_directory>`: Either a single image file path or a directory containing multiple images.
+
+When executed, the script will:
+
+1. **Check if the model is downloaded** in `models/`. If not, it will download it automatically.
+2. **Process the image(s)** by passing them through the JoyCaption2 model.
+3. **Generate a formal, detailed caption** for each image.
+4. **Save the caption as a `.txt` file** in the same directory as the image.
+
+### Example
+
+#### **Captioning a Single Image**
+
+```bash
+python utils/describe-image.py data/images/example.jpg
+```
+
+- This will generate a caption and save it as `data/images/example.txt`.
+
+#### **Captioning All Images in a Directory**
+
+```bash
+python utils/describe-image.py data/images/
+```
+
+- This will generate captions for **all images** in `data/images/`, saving them as `.txt` files with the same base filenames.
+
+### Output Format
+
+For an image named `example.jpg`, the script will generate:
+
+- `example.txt` containing the long descriptive caption.
+
+### Notes and Considerations
+
+- **Supported Image Formats**: The script supports `.jpg`, `.jpeg`, `.png`, `.bmp`, `.gif`, and `.tiff`.
+- **GPU Acceleration**: The script automatically utilizes a GPU if available for faster processing.
+- **Model Storage**: The JoyCaption2 model will be downloaded to `models/llama-joycaption-alpha-two-hf-llava/`.
+- **Error Handling**: If the caption generation encounters issues (e.g., invalid images, NaN values), the script will log the error and continue processing other images.
+
+This tool provides an efficient way to generate high-quality captions for large batches of images while leveraging state-of-the-art AI models. 🚀
 
 ## Contributing
 
