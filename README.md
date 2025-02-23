@@ -19,7 +19,7 @@ Discord: https://discord.gg/mjnStFuCYh
     - [Downloading Videos](#downloading-videos)
       - [xHamster Downloader](#xhamster-downloader)
       - [4chan Downloader](#4chan-downloader)
-      - [SpangBang Downloader](#spangband-downloader)
+      - [spankBang Downloader](#spankband-downloader)
     - [Downloading from Reddit](#downloading-from-reddit)
     - [Splitting Videos by Scene](#splitting-videos-by-scene)
     - [Trimming Frames from Videos](#trimming-frames-from-videos)
@@ -342,7 +342,7 @@ python downloaders/download_spankbang.py <video_url>
 1. **Run the Script**:
 
    ```bash
-   python downloaders/download_spangbang.py <video_url>
+   python downloaders/download_spankbang.py <video_url>
    ```
 
 2. **The Video** will be downloaded to `data/videos`.
