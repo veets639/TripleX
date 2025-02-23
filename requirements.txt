@@ -19,3 +19,5 @@ google-cloud-storage
 transformers
 huggingface_hub
 Pillow
+selenium-base
+lxml
