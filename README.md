@@ -19,6 +19,7 @@ Discord: https://discord.gg/mjnStFuCYh
     - [Downloading Videos](#downloading-videos)
       - [xHamster Downloader](#xhamster-downloader)
       - [4chan Downloader](#4chan-downloader)
+      - [SpangBang Downloader](#spangband-downloader)
     - [Downloading from Reddit](#downloading-from-reddit)
     - [Splitting Videos by Scene](#splitting-videos-by-scene)
     - [Trimming Frames from Videos](#trimming-frames-from-videos)
@@ -57,7 +58,7 @@ Discord: https://discord.gg/mjnStFuCYh
 
 ## Features
 
-- **Video Downloaders**: Currently supports downloading videos from xHamster and Reddit.
+- **Video Downloaders**: Currently supports downloading videos from xHamster, 4chan, SpankBang, and Reddit.
 - **Scene Detection**: Uses PySceneDetect to split videos into individual scenes.
 - **Frame Trimming**: Trims a specified number of frames from the beginning of videos.
 - **Frame Analysis**: Analyzes frames extracted from videos using machine learning models.
@@ -321,6 +322,33 @@ When running without any flags, the script will:
    - data/videos for videos (mp4, etc.) and for GIF→MP4 conversions (if --convert-gifs is used).
 
 After running the script, you can find your media in the data/images or data/videos directories. You can further process them with other TripleX utilities (scene detection, trimming, dataset creation, etc.).
+
+#### SpankBang Downloader
+
+The `download_spankbang.py` script allows you to download videos from SpankBang.
+
+**Note**: Ensure you comply with all legal requirements and terms of service when downloading content.
+
+**Example Usage**:
+
+```bash
+python downloaders/download_spankbang.py <video_url>
+```
+
+- Replace `<video_url>` with the actual URL of the xHamster video.
+
+**Instructions**:
+
+1. **Run the Script**:
+
+   ```bash
+   python downloaders/download_spangbang.py <video_url>
+   ```
+
+2. **The Video** will be downloaded to `data/videos`.
+
+   - The script automatically saves the downloaded video in the `data/videos` directory.
+   - No additional input is required after providing the URL.
 
 ### Splitting Videos by Scene
 
