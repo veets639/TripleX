@@ -19,7 +19,7 @@ Discord: https://discord.gg/mjnStFuCYh
     - [Downloading Videos](#downloading-videos)
       - [xHamster Downloader](#xhamster-downloader)
       - [4chan Downloader](#4chan-downloader)
-      - [spankBang Downloader](#spankband-downloader)
+      - [spankBang Downloader](#spankbank-downloader)
     - [Downloading from Reddit](#downloading-from-reddit)
     - [Splitting Videos by Scene](#splitting-videos-by-scene)
     - [Trimming Frames from Videos](#trimming-frames-from-videos)
