@@ -90,7 +90,7 @@ def extract_sharpest_frame(video_path):
                 continue
 
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            variance = cv2.Laplacian(gray, cv2.CV_64F).var()
+            variance = cv2.Laplacian(gray, cv2.CV_64F).var()  # Sharpness metric
 
             if variance > max_variance:
                 max_variance = variance
@@ -106,11 +106,8 @@ def extract_sharpest_frame(video_path):
         cap.release()
 
     if sharpest_frame is not None:
-        output_dir = os.path.join("data", "images")
-        os.makedirs(output_dir, exist_ok=True)
-        base_name = os.path.splitext(os.path.basename(video_path))[0]
-        frame_filename = f"{base_name}_sharpest_frame_{best_frame_number}.jpg"
-        frame_path = os.path.join(output_dir, frame_filename)
+        # Save next to original video with same filename, different extension
+        frame_path = os.path.splitext(video_path)[0] + ".png"
         cv2.imwrite(frame_path, sharpest_frame)
 
         print(f"[INFO] Sharpest frame saved: {frame_path} (Variance: {max_variance})")
@@ -122,16 +119,53 @@ def extract_sharpest_frame(video_path):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Extract the sharpest frame from a video, excluding text frames and mostly black/white frames."
+        description="Extract the sharpest frame from a video or all videos in a folder."
     )
-    parser.add_argument("--input", required=True, help="Path to the input video file")
+    parser.add_argument(
+        "--input", required=True, help="Path to the input video file or directory"
+    )
     args = parser.parse_args()
 
-    result = extract_sharpest_frame(args.input)
-    if result:
-        print(f"[INFO] Sharpest frame saved: {result}")
+    input_path = args.input
+
+    if os.path.isdir(input_path):  # If input is a directory
+        video_extensions = (".mp4", ".avi", ".mov", ".mkv", ".flv", ".wmv", ".ts")
+
+        for file_name in os.listdir(input_path):
+            video_path = os.path.join(input_path, file_name)
+
+            if not file_name.lower().endswith(video_extensions):  # Skip non-video files
+                continue
+
+            frame_path = os.path.splitext(video_path)[0] + ".png"
+
+            if os.path.exists(frame_path):  # Skip if the image already exists
+                print(
+                    f"[INFO] Skipping '{video_path}', sharpest frame already extracted."
+                )
+                continue
+
+            print(f"[INFO] Processing video: {video_path}")
+            result = extract_sharpest_frame(video_path)
+            if result:
+                print(f"[INFO] Sharpest frame saved: {result}")
+            else:
+                print(f"[ERROR] Failed to extract sharpest frame for {video_path}")
+
+    elif os.path.isfile(input_path):  # If input is a single video file
+        frame_path = os.path.splitext(input_path)[0] + ".png"
+
+        if os.path.exists(frame_path):  # Skip if the image already exists
+            print(f"[INFO] Skipping '{input_path}', sharpest frame already extracted.")
+            return
+
+        result = extract_sharpest_frame(input_path)
+        if result:
+            print(f"[INFO] Sharpest frame saved: {result}")
+        else:
+            print(f"[ERROR] Failed to extract sharpest frame for {input_path}")
     else:
-        print("[ERROR] Failed to extract sharpest frame.")
+        print(f"[ERROR] Invalid path: {input_path}")
 
 
 if __name__ == "__main__":
