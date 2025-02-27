@@ -1,5 +1,6 @@
 # Ignore system files
 .DS_Store
+setup.rc
 
 # Ignore IDE/editor config directories
 .idea/
@@ -14,6 +15,7 @@ __pycache__/
 
 # Ignore virtual environment directories
 venv/
+venv
 env/
 ENV/
 .virtualenv/
